@@ -80,26 +80,43 @@ const COMMON_TEMPS: DrinkTemp[] = ['ice', 'no_ice', 'hot'];
 const COLD_ONLY: DrinkTemp[] = ['ice', 'no_ice'];
 
 const DRINK_META: Record<string, DrinkConfig> = {
+  // 1. 一般飲料
   '紅茶':       { base: 15, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:15, M:20, L:25 }, temps: COMMON_TEMPS },
   '無糖紅茶':   { base: 15, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:15, M:20, L:25 }, temps: COMMON_TEMPS },
+  
+  // 2. 奶茶/豆漿類
   '奶茶':       { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS, hasSugar: true },
   '豆漿':       { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
   '無糖豆漿':   { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
   '薏仁漿':     { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
   '米漿':       { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
+
+  // 3. 冬瓜茶
   '冬瓜茶':     { base: 25, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:25, L:30 },       temps: COMMON_TEMPS },
-  '柳橙汁':     { base: 30, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:30, M:35, L:40 }, temps: COLD_ONLY, base: 30 },
-  '蔓越莓汁':   { base: 30, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:30, M:35, L:40 }, temps: COLD_ONLY, base: 30 },
-  '冷泡茶':     { base: 25, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:25, L:35 },       temps: COLD_ONLY, base: 25 },
+
+  // 4. 果汁/冷泡茶 (★ 修正：移除尾端重複的 base)
+  '柳橙汁':     { base: 30, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:30, M:35, L:40 }, temps: COLD_ONLY },
+  '蔓越莓汁':   { base: 30, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:30, M:35, L:40 }, temps: COLD_ONLY },
+  '冷泡茶':     { base: 25, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:25, L:35 },       temps: COLD_ONLY },
+
+  // 5. 鮮奶/特調類
   '鮮奶茶':     { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS, hasSugar: true },
   '薏仁牛奶':   { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS },
   '可可亞牛奶': { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS, hasSugar: false },
-  '豆奶茶':     { base: 30, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:30, L:40 },       temps: COMMON_TEMPS, hasSugar: true, base: 30 },
-  '泰式奶茶':   { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS, hasSugar: false, base: 35 },
+  
+  // 6. 豆奶茶
+  '豆奶茶':     { base: 30, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:30, L:40 },       temps: COMMON_TEMPS, hasSugar: true },
+
+  // 7. 泰式奶茶
+  '泰式奶茶':   { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS, hasSugar: false },
+
+  // 8. 咖啡類
   '美式咖啡':   { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:55 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
   '拿鐵咖啡':   { base: 50, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:50, L:75 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
   '特調咖啡':   { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:60 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
   '鴛鴦奶茶':   { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:60 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
+
+  // 9. 湯品
   '玉米濃湯':   { base: 40, baseSize: 'M', sizes: ['M'],           prices: { M:40 },             temps: ['hot'], isSoup: true }
 };
 
