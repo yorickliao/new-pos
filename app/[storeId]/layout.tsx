@@ -12,8 +12,8 @@ import {
   Menu,
   ChefHat,
   Loader2,
-  UtensilsCrossed, // ★ 補上這個
-  Settings         // ★ 補上這個
+  UtensilsCrossed, 
+  Settings         
 } from 'lucide-react';
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
@@ -29,6 +29,13 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     async function checkUser() {
+      // ★ 1. 如果是公開頁面 (POS 或 廚房接單)，不強制檢查登入，直接放行顯示內容
+      // 這樣可以避免公開使用者進入頁面後，被底下的 auth check 踢回 login
+      if (pathname?.endsWith('/pos') || pathname?.endsWith('/orders')) {
+        setLoading(false);
+        return; 
+      }
+
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
@@ -42,6 +49,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           .eq('id', user.id)
           .single();
 
+        // 檢查是否為該店員工或總部
         if (!profile || (profile.role !== 'brand_owner' && profile.assigned_store_id !== storeId)) {
           alert('無權限存取此分店資料');
           router.push('/login');
@@ -50,6 +58,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
         setRole(profile.role);
 
+        // 撈取店名顯示在側邊欄
         const { data: store } = await supabase
           .from('stores')
           .select('name')
@@ -67,7 +76,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     }
     
     checkUser();
-  }, [storeId, router]);
+  }, [storeId, router, pathname]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -76,33 +85,30 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
   // --- 定義側邊欄選單 ---
   const navItems = [
-    // 1. 訂單管理 (現在是首頁，包含營運概況)
+    // 1. 共用功能 (所有登入員工都看得到)
     { name: '訂單管理', href: `/${storeId}/orders`, icon: ClipboardList },
+    { name: 'POS 點餐機', href: `/${storeId}/pos`, icon: Store }, // ★ 移到這裡，讓員工也能用
 
-    
-    
-    // 3. 店長/Brand Owner 才看得到的管理功能
+    // 2. 管理功能 (只有店長/Brand Owner 看得到)
     ...(['store_manager', 'brand_owner'].includes(role) ? [
       { name: '菜單管理', href: `/${storeId}/menu`, icon: UtensilsCrossed },
       { name: '營業設定', href: `/${storeId}/settings`, icon: Settings },
-
-      // 2. POS 機 (常駐)
-    { name: 'POS 點餐機', href: `/${storeId}/pos`, icon: Store },
     ] : []),
   ];
 
-  // 1. 如果正在載入，顯示全螢幕讀取畫面
+  // 1. 載入中畫面
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-bold gap-2">
         <Loader2 className="animate-spin" /> 
-        驗證權限中...
+        系統載入中...
       </div>
     );
   }
 
-  // 2. 特殊處理：如果是 POS 頁面，不顯示側邊欄 (全螢幕模式)
-  if (pathname?.endsWith('/pos')) {
+  // 2. 特殊處理：如果是 POS 或 Orders 頁面，不顯示側邊欄 (全螢幕模式)
+  // 這樣無論是「員工登入後點擊」或是「客人掃碼進入」，都看到乾淨的全螢幕
+  if (pathname?.endsWith('/pos') || pathname?.endsWith('/orders')) {
     return <>{children}</>;
   }
 
