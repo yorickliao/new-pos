@@ -5,15 +5,15 @@ import Link from 'next/link';
 import { usePathname, useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { 
-  LayoutDashboard, 
+  LayoutDashboard, // 改用這個 icon 代表中控台
   Store, 
   ClipboardList, 
   LogOut, 
   Menu,
   ChefHat,
   Loader2,
-  UtensilsCrossed, 
-  Settings         
+  // UtensilsCrossed, // 移除：因為整合進 Dashboard 了
+  // Settings         // 移除：因為整合進 Dashboard 了
 } from 'lucide-react';
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
@@ -29,8 +29,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     async function checkUser() {
-      // ★ 1. 如果是公開頁面 (POS 或 廚房接單)，不強制檢查登入，直接放行顯示內容
-      // 這樣可以避免公開使用者進入頁面後，被底下的 auth check 踢回 login
+      // 1. 公開頁面 (POS / 廚房) 不檢查
       if (pathname?.endsWith('/pos') || pathname?.endsWith('/orders')) {
         setLoading(false);
         return; 
@@ -42,13 +41,13 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           router.push('/login');
           return;
         }
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('role, assigned_store_id')
           .eq('id', user.id)
           .single();
 
-        // 檢查是否為該店員工或總部
         if (!profile || (profile.role !== 'brand_owner' && profile.assigned_store_id !== storeId)) {
           alert('無權限存取此分店資料');
           router.push('/login');
@@ -57,7 +56,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
         setRole(profile.role);
 
-        // 撈取店名顯示在側邊欄
         const { data: store } = await supabase
           .from('stores')
           .select('name')
@@ -82,20 +80,22 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     router.push('/login');
   };
 
-  // --- 定義側邊欄選單 ---
+  // --- ★ 簡化後的側邊欄選單 ---
   const navItems = [
-    // 1. 共用功能 (所有登入員工都看得到)
-    { name: '訂單管理', href: `/${storeId}/orders`, icon: ClipboardList },
-    { name: 'POS 點餐機', href: `/${storeId}/pos`, icon: Store }, // ★ 移到這裡，讓員工也能用
-
-    // 2. 管理功能 (只有店長/Brand Owner 看得到)
+    // 1. 營運中控 (Dashboard) - 包含 概況/菜單/設定
+    // 只有店長或總部看得到，這是管理後台的核心
     ...(['store_manager', 'brand_owner'].includes(role) ? [
-      { name: '菜單管理', href: `/${storeId}/menu`, icon: UtensilsCrossed },
-      { name: '營業設定', href: `/${storeId}/settings`, icon: Settings },
+      { name: '營運中控', href: `/${storeId}/dashboard`, icon: LayoutDashboard },
     ] : []),
+
+    // 2. 廚房接單 (KDS) - 所有員工都看得到
+    { name: '廚房接單', href: `/${storeId}/orders`, icon: ClipboardList },
+
+    // 3. POS 點餐機 - 所有員工都看得到
+    { name: 'POS 點餐機', href: `/${storeId}/pos`, icon: Store },
   ];
 
-  // 1. 載入中畫面
+  // 1. 載入中
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-bold gap-2">
@@ -105,15 +105,13 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // 2. 特殊處理：如果是 POS 或 Orders 頁面，不顯示側邊欄 (全螢幕模式)
-  // 這樣無論是「員工登入後點擊」或是「客人掃碼進入」，都看到乾淨的全螢幕
+  // 2. 全螢幕模式 (POS / Orders 不顯示側邊欄)
+  // 注意：這裡我把 orders 也加入了全螢幕模式，因為廚房螢幕通常不需要側邊欄干擾
   if (pathname?.endsWith('/pos') || pathname?.endsWith('/orders')) {
     return <>{children}</>;
   }
 
-  // ---------------------------------------------------------
-  // 一般後台畫面 (有側邊欄)
-  // ---------------------------------------------------------
+  // 3. 一般後台 (Dashboard)
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
       
@@ -148,7 +146,11 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
 
         <nav className="p-4 space-y-2">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            // 判斷是否 active：如果是根路徑，要精確比對
+            const isActive = item.href === `/${storeId}` 
+              ? pathname === item.href 
+              : pathname?.startsWith(item.href);
+
             return (
               <Link
                 key={item.href}
