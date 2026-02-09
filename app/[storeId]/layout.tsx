@@ -42,7 +42,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           router.push('/login');
           return;
         }
-
         const { data: profile } = await supabase
           .from('profiles')
           .select('role, assigned_store_id')
