@@ -387,7 +387,7 @@ export default function ModifierModal({ product, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-slate-50 w-full max-w-md md:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+      <div className="bg-slate-50 w-full max-w-md md:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden">
         
         {/* Header */}
         <div className="bg-white p-4 flex justify-between items-center border-b border-slate-200 z-10">
