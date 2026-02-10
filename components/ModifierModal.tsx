@@ -6,7 +6,7 @@ import { MenuItem } from '@/types/menu';
 import { useCart } from '@/hooks/useCart';
 
 // =============================================================================
-// 1. 型別與資料結構
+// 1. 飲品與套餐設定 (維持原樣)
 // =============================================================================
 
 type DrinkSize = 'S' | 'M' | 'L';
@@ -29,8 +29,66 @@ type SetMealDrink = {
   add: number; 
 };
 
+const COMMON_TEMPS: DrinkTemp[] = ['ice', 'no_ice', 'hot'];
+const COLD_ONLY: DrinkTemp[] = ['ice', 'no_ice'];
+
+const DRINK_META: Record<string, DrinkConfig> = {
+  '紅茶':       { base: 15, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:15, M:20, L:25 }, temps: COMMON_TEMPS },
+  '無糖紅茶':   { base: 15, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:15, M:20, L:25 }, temps: COMMON_TEMPS },
+  '奶茶':       { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS, hasSugar: true },
+  '豆漿':       { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
+  '無糖豆漿':   { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
+  '薏仁漿':     { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
+  '米漿':       { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
+  '冬瓜茶':     { base: 25, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:25, L:30 },       temps: COMMON_TEMPS },
+  '柳橙汁':     { base: 30, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:30, M:35, L:40 }, temps: COLD_ONLY },
+  '蔓越莓汁':   { base: 30, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:30, M:35, L:40 }, temps: COLD_ONLY },
+  '冷泡茶':     { base: 25, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:25, L:35 },       temps: COLD_ONLY },
+  '鮮奶茶':     { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS, hasSugar: true },
+  '薏仁牛奶':   { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS },
+  '可可亞牛奶': { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS, hasSugar: false },
+  '豆奶茶':     { base: 30, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:30, L:40 },       temps: COMMON_TEMPS, hasSugar: true },
+  '泰式奶茶':   { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS, hasSugar: false },
+  '美式咖啡':   { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:55 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
+  '拿鐵咖啡':   { base: 50, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:50, L:75 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
+  '特調咖啡':   { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:60 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
+  '鴛鴦奶茶':   { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:60 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
+  '玉米濃湯':   { base: 40, baseSize: 'M', sizes: ['M'],           prices: { M:40 },             temps: ['hot'], isSoup: true }
+};
+
+const SET_MEAL_DRINKS: SetMealDrink[] = [
+  { id:'tea',        name:'紅茶',       add:0 },
+  { id:'green',      name:'無糖紅茶',   add:0 },
+  { id:'milk',       name:'奶茶',       add:5 },
+  { id:'winter',     name:'冬瓜茶',     add:10 },
+  { id:'soy',        name:'豆漿',       add:5 },
+  { id:'soy_ns',     name:'無糖豆漿',   add:5 },
+  { id:'barley',     name:'薏仁漿',     add:5 },
+  { id:'rice',       name:'米漿',       add:5 },
+  { id:'orange',     name:'柳橙汁',     add:15 },
+  { id:'cranberry',  name:'蔓越莓汁',   add:15 },
+  { id:'fresh',      name:'鮮奶茶',     add:20 },
+  { id:'barley_milk',name:'薏仁牛奶',   add:20 },
+  { id:'soy_milk',   name:'豆奶茶',     add:15 },
+  { id:'cocoa',      name:'可可亞牛奶', add:20 },
+  { id:'thai',       name:'泰式奶茶',   add:20 },
+  { id:'cold_brew',  name:'冷泡茶',     add:10 },
+  { id:'americano',  name:'美式咖啡',   add:20 },
+  { id:'latte',      name:'拿鐵咖啡',   add:35 },
+  { id:'special_cof',name:'特調咖啡',   add:25 },
+  { id:'yuanyang',   name:'鴛鴦奶茶',   add:25 },
+  { id:'soup',       name:'玉米濃湯',   add:25 },
+];
+
+const UPGRADE_PLANS = [
+  { id: '39_hotdog',   price: 39, label: '熱狗＋中紅',     credit: 15, defaultDrink: '紅茶', defaultSize: 'M' },
+  { id: '49_garlic',   price: 49, label: '香蒜麵包＋中紅', credit: 15, defaultDrink: '紅茶', defaultSize: 'M' },
+  { id: '59_tempura',  price: 59, label: '甜不辣＋中奶',   credit: 20, defaultDrink: '奶茶', defaultSize: 'M' },
+  { id: '69_fish',     price: 69, label: '魚條＋中冬',     credit: 20, defaultDrink: '冬瓜茶', defaultSize: 'M' },
+];
+
 // =============================================================================
-// 2. 商業邏輯規則
+// 2. 商業邏輯規則 (Hardcoded)
 // =============================================================================
 
 const CAT_MAP: Record<string, string> = {
@@ -75,82 +133,6 @@ const ITEM_OPTION_RULES: any = {
   ]
 };
 
-// --- ★ 飲品詳細規則 ---
-const COMMON_TEMPS: DrinkTemp[] = ['ice', 'no_ice', 'hot'];
-const COLD_ONLY: DrinkTemp[] = ['ice', 'no_ice'];
-
-const DRINK_META: Record<string, DrinkConfig> = {
-  // 1. 一般飲料
-  '紅茶':       { base: 15, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:15, M:20, L:25 }, temps: COMMON_TEMPS },
-  '無糖紅茶':   { base: 15, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:15, M:20, L:25 }, temps: COMMON_TEMPS },
-  
-  // 2. 奶茶/豆漿類
-  '奶茶':       { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS, hasSugar: true },
-  '豆漿':       { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
-  '無糖豆漿':   { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
-  '薏仁漿':     { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
-  '米漿':       { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
-
-  // 3. 冬瓜茶
-  '冬瓜茶':     { base: 25, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:25, L:30 },       temps: COMMON_TEMPS },
-
-  // 4. 果汁/冷泡茶 (★ 修正：移除尾端重複的 base)
-  '柳橙汁':     { base: 30, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:30, M:35, L:40 }, temps: COLD_ONLY },
-  '蔓越莓汁':   { base: 30, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:30, M:35, L:40 }, temps: COLD_ONLY },
-  '冷泡茶':     { base: 25, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:25, L:35 },       temps: COLD_ONLY },
-
-  // 5. 鮮奶/特調類
-  '鮮奶茶':     { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS, hasSugar: true },
-  '薏仁牛奶':   { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS },
-  '可可亞牛奶': { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS, hasSugar: false },
-  
-  // 6. 豆奶茶
-  '豆奶茶':     { base: 30, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:30, L:40 },       temps: COMMON_TEMPS, hasSugar: true },
-
-  // 7. 泰式奶茶
-  '泰式奶茶':   { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS, hasSugar: false },
-
-  // 8. 咖啡類
-  '美式咖啡':   { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:55 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
-  '拿鐵咖啡':   { base: 50, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:50, L:75 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
-  '特調咖啡':   { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:60 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
-  '鴛鴦奶茶':   { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:60 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
-
-  // 9. 湯品
-  '玉米濃湯':   { base: 40, baseSize: 'M', sizes: ['M'],           prices: { M:40 },             temps: ['hot'], isSoup: true }
-};
-
-const SET_MEAL_DRINKS: SetMealDrink[] = [
-  { id:'tea',        name:'紅茶',       add:0 },
-  { id:'green',      name:'無糖紅茶',   add:0 },
-  { id:'milk',       name:'奶茶',       add:5 },
-  { id:'winter',     name:'冬瓜茶',     add:10 },
-  { id:'soy',        name:'豆漿',       add:5 },
-  { id:'soy_ns',     name:'無糖豆漿',   add:5 },
-  { id:'barley',     name:'薏仁漿',     add:5 },
-  { id:'rice',       name:'米漿',       add:5 },
-  { id:'orange',     name:'柳橙汁',     add:15 },
-  { id:'cranberry',  name:'蔓越莓汁',   add:15 },
-  { id:'fresh',      name:'鮮奶茶',     add:20 },
-  { id:'barley_milk',name:'薏仁牛奶',   add:20 },
-  { id:'soy_milk',   name:'豆奶茶',     add:15 },
-  { id:'cocoa',      name:'可可亞牛奶', add:20 },
-  { id:'thai',       name:'泰式奶茶',   add:20 },
-  { id:'cold_brew',  name:'冷泡茶',     add:10 },
-  { id:'americano',  name:'美式咖啡',   add:20 },
-  { id:'latte',      name:'拿鐵咖啡',   add:35 },
-  { id:'special_cof',name:'特調咖啡',   add:25 },
-  { id:'yuanyang',   name:'鴛鴦奶茶',   add:25 },
-  { id:'soup',       name:'玉米濃湯',   add:25 },
-];
-
-const UPGRADE_PLANS = [
-  { id: '39_hotdog',   price: 39, label: '熱狗＋中紅',     credit: 15, defaultDrink: '紅茶', defaultSize: 'M' },
-  { id: '49_garlic',   price: 49, label: '香蒜麵包＋中紅', credit: 15, defaultDrink: '紅茶', defaultSize: 'M' },
-  { id: '59_tempura',  price: 59, label: '甜不辣＋中奶',   credit: 20, defaultDrink: '奶茶', defaultSize: 'M' },
-  { id: '69_fish',     price: 69, label: '魚條＋中冬',     credit: 20, defaultDrink: '冬瓜茶', defaultSize: 'M' },
-];
-
 // =============================================================================
 // 3. 元件本體
 // =============================================================================
@@ -164,14 +146,15 @@ export default function ModifierModal({ product, onClose }: Props) {
   const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState('');
+  
+  // selections 結構: { "group_key": { "label": price } }
   const [selections, setSelections] = useState<Record<string, Record<string, number>>>({});
 
-  // 飲品共用狀態
+  // 飲品狀態
   const [drinkName, setDrinkName] = useState<string>('');
   const [drinkSize, setDrinkSize] = useState<DrinkSize>('M'); 
   const [drinkTemp, setDrinkTemp] = useState<DrinkTemp>('ice');
   const [drinkSugar, setDrinkSugar] = useState('normal');
-
   const [upgradeId, setUpgradeId] = useState<string>(''); 
   const [setDrinkId, setSetDrinkId] = useState<string>(''); 
 
@@ -180,26 +163,12 @@ export default function ModifierModal({ product, onClose }: Props) {
   const isSet    = (product.categoryName || '').includes('套餐');
   const isSoup   = product.name.includes('濃湯');
 
-  // 自動修正規格
-  useEffect(() => {
-    if (!drinkName) return;
-    const meta = DRINK_META[drinkName];
-    if (!meta) return;
-
-    if (!meta.sizes.includes(drinkSize)) {
-      setDrinkSize(meta.sizes[0]); 
-    }
-    if (!meta.temps.includes(drinkTemp)) {
-      setDrinkTemp(meta.temps[0]);
-    }
-  }, [drinkName, drinkSize, drinkTemp]);
-
   // 初始化
   useEffect(() => {
     if (isSet) {
       setSetDrinkId('tea'); 
       setDrinkName('紅茶');
-      setDrinkSize('S'); // 套餐預設小杯
+      setDrinkSize('S');
     } else if (isDrink || isCoffee) {
       setDrinkName(product.name); 
       const meta = DRINK_META[product.name];
@@ -207,40 +176,97 @@ export default function ModifierModal({ product, onClose }: Props) {
     }
   }, [isSet, isDrink, isCoffee, product.name]);
 
-  const rules = useMemo(() => {
+  // ★★★ 核心邏輯：規則篩選與替換 ★★★
+  const modifierGroups = useMemo(() => {
     const catKey = CAT_MAP[product.categoryName || ''] || 'snacks';
+    
+    // 1. 特殊處理：果醬吐司/厚片吐司 (完全替換規則)
+    if (catKey === 'toast' && (product.name.includes('果醬') || product.name.includes('厚片'))) {
+      return [
+        {
+          key: 'flavor',
+          label: '口味選擇',
+          type: 'choice', // 假設是單選口味 (若可複選請改 toggle)
+          isRequired: true, // 必選口味
+          options: [
+            { label: '草莓', price: 0 },
+            { label: '奶酥', price: 0 },
+            { label: '巧克力', price: 0 },
+            { label: '奶油', price: 0 },
+            { label: '花生', price: 0 },
+            { label: '藍莓', price: 0 },
+            { label: '香蒜', price: 5 },
+            { label: '煉乳', price: 10 },
+          ]
+        }
+      ];
+    }
+
+    // 2. 標準邏輯
     const base = CATEGORY_OPTION_RULES[catKey] || [];
     const extra = ITEM_OPTION_RULES[product.name] || [];
-    return [...base, ...extra];
+    let rules = [...base, ...extra];
+
+    // 3. 漢堡類：只有「蛋堡」才能「不加蛋」
+    if (catKey === 'burger') {
+      rules = rules.map((rule: any) => {
+        if (rule.key === 'remove') {
+          return {
+            ...rule,
+            options: (rule.options || []).filter((opt: any) => {
+              if (opt.label === '不加蛋') {
+                return product.name.includes('蛋堡');
+              }
+              return true;
+            })
+          };
+        }
+        return rule;
+      });
+    }
+
+    // 4. 一般烤土司類：只有「蛋吐司」才能「不加蛋」
+    if (catKey === 'toast') {
+      rules = rules.map((rule: any) => {
+        if (rule.key === 'remove') {
+          return {
+            ...rule,
+            options: (rule.options || []).filter((opt: any) => {
+              if (opt.label === '不加蛋') {
+                return product.name.includes('蛋吐司');
+              }
+              return true;
+            })
+          };
+        }
+        return rule;
+      });
+    }
+
+    return rules;
   }, [product]);
 
-  // ★ 修正重點：確保狀態更新是 Deep Copy，並正確處理選項
-  const toggleSelection = (key: string, label: string, price: number, type: 'choice'|'toggle') => {
+  // 切換選項
+  const toggleSelection = (groupKey: string, itemKey: string, price: number, type: 'choice'|'toggle') => {
     setSelections(prev => {
-      // 1. 淺拷貝外層
       const next = { ...prev };
       
-      // 2. 淺拷貝內層目標物件 (如果不存在就給空物件)
-      const nextGroup = { ...(next[key] || {}) };
-
       if (type === 'choice') {
-        // 單選：直接替換整個 group
-        next[key] = { [label]: price };
+        next[groupKey] = { [itemKey]: price };
       } else {
-        // 複選：修改拷貝後的 group
-        if (nextGroup[label] !== undefined) {
-          delete nextGroup[label]; // 取消選取
+        const nextGroup = { ...(next[groupKey] || {}) };
+        if (nextGroup[itemKey] !== undefined) {
+          delete nextGroup[itemKey];
         } else {
-          nextGroup[label] = price; // 新增選取
+          nextGroup[itemKey] = price;
         }
-        // 將修改後的 group 放回 next
-        next[key] = nextGroup;
+        next[groupKey] = nextGroup;
       }
       return next;
     });
   };
 
-  // --- 計算飲料價格 ---
+  // 計算飲料價格
   const calcDrinkPrice = (dName: string, dSize: DrinkSize, context: 'upgrade'|'set'|'single') => {
     if (!dName) return 0;
     const meta = DRINK_META[dName];
@@ -261,11 +287,12 @@ export default function ModifierModal({ product, onClose }: Props) {
     return Math.max(0, actualPrice - minPrice);
   };
 
-  // --- 總金額 ---
+  // 計算總金額
   const total = useMemo(() => {
     let p = product.base_price;
-    // 計算所有一般選項的價格
-    Object.values(selections).forEach(grp => Object.values(grp).forEach(v => p += v));
+    Object.values(selections).forEach(grp => {
+      Object.values(grp).forEach(v => p += v);
+    });
     
     if (upgradeId) {
       const plan = UPGRADE_PLANS.find(x => x.id === upgradeId);
@@ -274,29 +301,32 @@ export default function ModifierModal({ product, onClose }: Props) {
         p += calcDrinkPrice(drinkName, drinkSize, 'upgrade');
       }
     }
-
     if (isSet && setDrinkId) {
       const setDrink = SET_MEAL_DRINKS.find(x => x.id === setDrinkId);
       if (setDrink) p += calcDrinkPrice(drinkName, drinkSize, 'set');
     }
-
     if ((isDrink || isCoffee) && !isSet) {
       p += calcDrinkPrice(product.name, drinkSize, 'single');
     }
 
     return p * quantity;
-  }, [product.base_price, selections, upgradeId, drinkName, drinkSize, isSet, setDrinkId, isDrink, isCoffee]);
+  }, [product.base_price, selections, upgradeId, drinkName, drinkSize, isSet, setDrinkId, isDrink, isCoffee, quantity]);
 
-  // --- 送出 ---
+  // 送出表單
   const handleSubmit = () => {
     const options: any[] = [];
 
-    Object.entries(selections).forEach(([k, vals]) => {
-      Object.entries(vals).forEach(([label, price]) => {
-        options.push({ id: k, label, price });
-      });
+    // 處理一般加料
+    modifierGroups.forEach((group: any) => {
+      const selectedInGroup = selections[group.key];
+      if (selectedInGroup) {
+        Object.entries(selectedInGroup).forEach(([itemKey, price]) => {
+          options.push({ id: itemKey, label: itemKey, price: Number(price) });
+        });
+      }
     });
 
+    // 處理飲品
     const fmtDrink = (name: string) => {
       const szMap:any = {S:'小', M:'中', L:'大'};
       const tpMap:any = {ice:'冰', no_ice:'去冰', hot:'熱'};
@@ -359,6 +389,7 @@ export default function ModifierModal({ product, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
       <div className="bg-slate-50 w-full max-w-md md:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
         
+        {/* Header */}
         <div className="bg-white p-4 flex justify-between items-center border-b border-slate-200 z-10">
           <h2 className="text-xl font-black text-black">{product.name}</h2>
           <button onClick={onClose} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 text-black"><X size={20} /></button>
@@ -367,22 +398,28 @@ export default function ModifierModal({ product, onClose }: Props) {
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
           
           {/* 一般選項 */}
-          {(!isDrink && !isCoffee) && rules.map((rule: any) => (
-            <div key={rule.key}>
+          {(!isDrink && !isCoffee) && modifierGroups.map((group: any) => (
+            <div key={group.key}>
               <h3 className="font-black text-black mb-2.5 flex items-center gap-2 text-base">
-                {rule.label}
+                {group.label}
               </h3>
               <div className="flex flex-wrap gap-2">
-                {(rule.options || [{label:rule.label, price:rule.price}]).map((opt: any) => {
-                   // ★ 修正：判斷選中狀態，使用 !== undefined 避免 0 元選項無法選中的問題
-                   const isSelected = selections[rule.key]?.[opt.label] !== undefined;
+                {(group.options || [{label: group.label, price: group.price}]).map((opt: any) => {
+                   const isSelected = selections[group.key]?.[opt.label] !== undefined;
                    
                    return (
-                    <button key={opt.label} onClick={() => toggleSelection(rule.key, opt.label, opt.price, rule.type)}
-                      className={`px-4 py-2.5 rounded-xl font-bold text-sm border transition-all active:scale-95 flex items-center gap-1 ${isSelected ? 'bg-black text-white border-black' : 'bg-white text-black border-slate-300'}`}
+                    <button 
+                      key={opt.label} 
+                      onClick={() => toggleSelection(group.key, opt.label, opt.price, group.type)}
+                      className={`px-4 py-2.5 rounded-xl font-bold text-sm border transition-all active:scale-95 flex items-center gap-1 
+                        ${isSelected ? 'bg-black text-white border-black' : 'bg-white text-black border-slate-300'}
+                      `}
                     >
                       {isSelected && <Check size={14} strokeWidth={4} />}
-                      {opt.label} {opt.price !== 0 && <span className="opacity-80 text-xs">{opt.price>0?`+${opt.price}`:opt.price}</span>}
+                      {opt.label} 
+                      {opt.price !== 0 && <span className={`text-xs ml-1 ${isSelected?'text-white/80':'text-slate-500'}`}>
+                        {opt.price > 0 ? `+${opt.price}` : opt.price}
+                      </span>}
                     </button>
                    );
                 })}
@@ -470,7 +507,7 @@ export default function ModifierModal({ product, onClose }: Props) {
                       onChange={() => { 
                         setUpgradeId(plan.id); 
                         setDrinkName(plan.defaultDrink); 
-                        setDrinkSize('M'); // 升級預設中杯
+                        setDrinkSize('M'); 
                       }}
                       className="w-5 h-5 accent-black"
                     />
@@ -489,7 +526,7 @@ export default function ModifierModal({ product, onClose }: Props) {
                     <div className="relative">
                       <select value={drinkName} onChange={e => {
                           setDrinkName(e.target.value);
-                          setDrinkSize('M'); // 換飲料重置中杯
+                          setDrinkSize('M'); 
                         }} 
                         className="w-full p-3 rounded-xl border border-slate-300 bg-white font-bold text-black appearance-none"
                       >
@@ -596,6 +633,7 @@ export default function ModifierModal({ product, onClose }: Props) {
           </div>
         </div>
 
+        {/* Footer */}
         <div className="p-4 bg-white border-t border-slate-200 flex items-center gap-4 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
           <div className="flex items-center gap-3 bg-slate-100 px-3 py-2 rounded-xl border border-slate-200">
             <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-1"><Minus size={18} className="text-black"/></button>
