@@ -40,7 +40,7 @@ const DRINK_META: Record<string, DrinkConfig> = {
   '無糖豆漿':   { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
   '薏仁漿':     { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
   '米漿':       { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
-  '冬瓜茶':     { base: 25, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:25, L:30 },       temps: COMMON_TEMPS },
+  '冬瓜茶':     { base: 25, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:25, L:30 },       temps: COLD_ONLY },
   '柳橙汁':     { base: 30, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:30, M:35, L:40 }, temps: COLD_ONLY },
   '蔓越莓汁':   { base: 30, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:30, M:35, L:40 }, temps: COLD_ONLY },
   '冷泡茶':     { base: 25, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:25, L:35 },       temps: COLD_ONLY },
@@ -97,36 +97,76 @@ const CAT_MAP: Record<string, string> = {
   '美味小點': 'snacks', '鍋燒系列': 'hotpot', '飲料': 'drinks', '研磨咖啡': 'coffee',
 };
 
+// --- 一般共用加肉選項 (已移除嫩雞、杏鮑菇) ---
+const MEAT_OPTIONS = [
+  {label:'加火腿', price:15},
+  {label:'加漢堡肉', price:20},
+  {label:'加麥香雞', price:25},
+  {label:'加薯餅', price:25},
+  {label:'加培根', price:30},
+  {label:'加牛肉', price:30},
+  {label:'加里肌', price:30},
+  {label:'加卡拉雞', price:45},
+  {label:'加厚牛', price:60}
+];
+
+// --- 包含「不加蛋」的客製選項 (給漢堡、吐司、蔥抓餅加蛋用) ---
+const CUSTOM_OPTIONS = [
+  {label:'不加蛋', price:-5},
+  {label:'不加菜', price:0},
+  {label:'不加醬', price:0},
+  {label:'菜多', price:10}
+];
+
+// --- ★ 新增：沒有「不加蛋」的客製選項 (給總匯、帕瑪森系列用) ---
+const CUSTOM_OPTIONS_NO_EGG = [
+  {label:'不加菜', price:0},
+  {label:'不加醬', price:0},
+  {label:'菜多', price:10}
+];
+
+const COMMON_ADDONS = [
+  { type:'toggle', key:'egg',    label:'加蛋',   price:15 },
+  { type:'toggle', key:'cheese', label:'加起司', price:10 },
+  { type:'toggle', key:'meat',   label:'加肉',   options: MEAT_OPTIONS }
+];
+
 const CATEGORY_OPTION_RULES: any = {
   burger: [
     { type:'choice', key:'bread',  label:'麵包體', options:[{ label:'漢堡', price:0 }, { label:'圓形帕瑪森', price:10 }] },
-    { type:'toggle', key:'egg',    label:'加蛋',   price:15 },
-    { type:'toggle', key:'cheese', label:'加起司', price:10 },
-    { type:'toggle', key:'meat',   label:'加肉',   options: [{label:'加火腿', price:15}, {label:'加培根', price:25}, {label:'加里肌', price:30}, {label:'加卡拉雞', price:45}] },
-    { type:'toggle', key:'remove', label:'客製',   options: [{label:'不加蛋', price:-5}, {label:'不加菜', price:0}, {label:'不加醬', price:0}] }
+    ...COMMON_ADDONS,
+    { type:'toggle', key:'remove', label:'客製',   options: CUSTOM_OPTIONS }
   ],
   toast: [
-    { type:'toggle', key:'add', label:'加料', options:[{label:'加起司', price:10}, {label:'換鬆餅', price:15}, {label:'加火腿', price:15}, {label:'加厚', price:10}] },
-    { type:'toggle', key:'remove', label:'客製', options: [{label:'不加蛋', price:-5}, {label:'不加菜', price:0}, {label:'不加醬', price:0}] }
+    ...COMMON_ADDONS,
+    { type:'toggle', key:'remove', label:'客製',   options: CUSTOM_OPTIONS }
   ],
   omelet: [
-    { type:'toggle', key:'add', label:'加料', options:[{label:'加起司', price:10}, {label:'雙蛋', price:15}, {label:'加火腿', price:15}] }
+    ...COMMON_ADDONS
   ],
+  // ★ 總匯：改用 CUSTOM_OPTIONS_NO_EGG
+  club: [
+    ...COMMON_ADDONS,
+    { type:'toggle', key:'remove', label:'客製',   options: CUSTOM_OPTIONS_NO_EGG }
+  ],
+  // ★ 帕瑪森系列：改用 CUSTOM_OPTIONS_NO_EGG
   custom: [
-    { type:'choice', key:'bread', label:'麵包體', options:[{label:'帕瑪森', price:10}, {label:'捲餅', price:5}, {label:'香頌', price:5}, {label:'燒餅', price:0}] },
-    { type:'toggle', key:'add', label:'加料', options:[{label:'加蛋', price:15}, {label:'加起司', price:10}] },
-    { type:'toggle', key:'remove', label:'客製', options: [{label:'不加菜', price:0}, {label:'不加醬', price:0}] }
+    { type:'choice', key:'bread', label:'麵包體', isRequired: true, options:[{label:'帕瑪森', price:10}, {label:'捲餅', price:5}, {label:'香頌', price:5}, {label:'燒餅', price:0}] },
+    ...COMMON_ADDONS,
+    { type:'toggle', key:'remove', label:'客製',   options: CUSTOM_OPTIONS_NO_EGG }
   ],
+  // 美味小點是純單點，無加料
+  snacks: [],
   hotpot: [
     { type:'toggle', key:'add', label:'加料', options:[{label:'加起司', price:10}, {label:'加沙茶', price:10}, {label:'加麵', price:15}] }
   ],
-  setmeal: [], drinks: [], coffee: [], snacks: [], club: [], special: []
+  setmeal: [], drinks: [], coffee: [], special: []
 };
 
 const ITEM_OPTION_RULES: any = {
   '蔥抓餅加蛋': [
-    { type:'toggle', key:'add', label:'加料', options:[{label:'加起司', price:10}, {label:'加火腿', price:15}] },
-    { type:'toggle', key:'remove', label:'客製', options:[{label:'不加蛋', price:-5}, {label:'不加醬', price:0}] }
+    ...COMMON_ADDONS,
+    { type:'toggle', key:'remove', label:'客製', options: CUSTOM_OPTIONS }
   ],
   '荷包蛋': [
     { type:'choice', key:'doneness', label:'熟度', options:[{label:'全熟', price:0}, {label:'半熟', price:0}] }
@@ -180,14 +220,19 @@ export default function ModifierModal({ product, onClose }: Props) {
   const modifierGroups = useMemo(() => {
     const catKey = CAT_MAP[product.categoryName || ''] || 'snacks';
     
-    // 1. 特殊處理：果醬吐司/厚片吐司 (完全替換規則)
+    // 1. 培根/火腿/鮪魚「焗烤厚片」：沒有任何加點選項
+    if (catKey === 'toast' && product.name.includes('焗烤厚片')) {
+      return [];
+    }
+
+    // 2. 果醬吐司/厚片吐司 (完全替換規則)
     if (catKey === 'toast' && (product.name.includes('果醬') || product.name.includes('厚片'))) {
-      return [
+      const customRules: any[] = [
         {
           key: 'flavor',
           label: '口味選擇',
-          type: 'choice', // 假設是單選口味 (若可複選請改 toggle)
-          isRequired: true, // 必選口味
+          type: 'choice', // 單選口味
+          isRequired: true, 
           options: [
             { label: '草莓', price: 0 },
             { label: '奶酥', price: 0 },
@@ -200,40 +245,37 @@ export default function ModifierModal({ product, onClose }: Props) {
           ]
         }
       ];
+
+      // 果醬吐司專屬：多一個加厚選項
+      if (product.name.includes('果醬')) {
+        customRules.push({
+          key: 'thickness',
+          label: '厚度選擇',
+          type: 'toggle',
+          isRequired: false,
+          options: [{ label: '加厚', price: 10 }]
+        });
+      }
+
+      return customRules;
     }
 
-    // 2. 標準邏輯
+    // 3. 標準邏輯
     const base = CATEGORY_OPTION_RULES[catKey] || [];
     const extra = ITEM_OPTION_RULES[product.name] || [];
     let rules = [...base, ...extra];
 
-    // 3. 漢堡類：只有「蛋堡」才能「不加蛋」
-    if (catKey === 'burger') {
+    // 4. 漢堡與一般烤土司類：只有「蛋堡」與「蛋吐司」才能「不加蛋」
+    if (catKey === 'burger' || catKey === 'toast') {
       rules = rules.map((rule: any) => {
         if (rule.key === 'remove') {
           return {
             ...rule,
             options: (rule.options || []).filter((opt: any) => {
+              // 因為只有 CUSTOM_OPTIONS (有不加蛋) 才會進來判斷，總匯跟帕瑪森已經沒有這個選項了
               if (opt.label === '不加蛋') {
-                return product.name.includes('蛋堡');
-              }
-              return true;
-            })
-          };
-        }
-        return rule;
-      });
-    }
-
-    // 4. 一般烤土司類：只有「蛋吐司」才能「不加蛋」
-    if (catKey === 'toast') {
-      rules = rules.map((rule: any) => {
-        if (rule.key === 'remove') {
-          return {
-            ...rule,
-            options: (rule.options || []).filter((opt: any) => {
-              if (opt.label === '不加蛋') {
-                return product.name.includes('蛋吐司');
+                if (catKey === 'burger') return product.name.includes('蛋堡');
+                if (catKey === 'toast') return product.name.includes('蛋吐司');
               }
               return true;
             })
@@ -314,6 +356,17 @@ export default function ModifierModal({ product, onClose }: Props) {
 
   // 送出表單
   const handleSubmit = () => {
+    // 檢查必選項目 (例如：帕瑪森麵包體、果醬口味)
+    for (const group of modifierGroups) {
+      if (group.isRequired) {
+        const selectedInGroup = selections[group.key];
+        if (!selectedInGroup || Object.keys(selectedInGroup).length === 0) {
+          alert(`請選擇「${group.label}」`);
+          return; // 阻擋送出
+        }
+      }
+    }
+
     const options: any[] = [];
 
     // 處理一般加料
@@ -387,7 +440,7 @@ export default function ModifierModal({ product, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-slate-50 w-full max-w-md md:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden">
+      <div className="bg-slate-50 w-full max-w-md md:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
         
         {/* Header */}
         <div className="bg-white p-4 flex justify-between items-center border-b border-slate-200 z-10">
@@ -402,6 +455,7 @@ export default function ModifierModal({ product, onClose }: Props) {
             <div key={group.key}>
               <h3 className="font-black text-black mb-2.5 flex items-center gap-2 text-base">
                 {group.label}
+                {group.isRequired && <span className="text-xs text-red-500 bg-red-50 px-1.5 py-0.5 rounded">*必填</span>}
               </h3>
               <div className="flex flex-wrap gap-2">
                 {(group.options || [{label: group.label, price: group.price}]).map((opt: any) => {
@@ -411,13 +465,13 @@ export default function ModifierModal({ product, onClose }: Props) {
                     <button 
                       key={opt.label} 
                       onClick={() => toggleSelection(group.key, opt.label, opt.price, group.type)}
-                      className={`px-4 py-2.5 rounded-xl font-bold text-sm border transition-all active:scale-95 flex items-center gap-1 
-                        ${isSelected ? 'bg-black text-white border-black' : 'bg-white text-black border-slate-300'}
+                      // 樣式：純粹用黑白底色切換，確保寬度永遠固定不跑位
+                      className={`px-4 py-2.5 rounded-xl font-bold text-sm border transition-colors active:scale-95 flex items-center gap-1 
+                        ${isSelected ? 'bg-black text-white border-black' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}
                       `}
                     >
-                      {isSelected && <Check size={14} strokeWidth={4} />}
                       {opt.label} 
-                      {opt.price !== 0 && <span className={`text-xs ml-1 ${isSelected?'text-white/80':'text-slate-500'}`}>
+                      {opt.price !== 0 && <span className={`text-xs ml-0.5 ${isSelected?'text-white/80':'text-slate-400'}`}>
                         {opt.price > 0 ? `+${opt.price}` : opt.price}
                       </span>}
                     </button>
