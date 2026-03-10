@@ -273,16 +273,14 @@ export default function ModifierModal({ product, onClose }: Props) {
         }
       ];
 
-      // 果醬吐司專屬：多一個加厚選項
-      if (product.name.includes('果醬')) {
-        customRules.push({
-          key: 'thickness',
-          label: '厚度選擇',
-          type: 'toggle',
-          isRequired: false,
-          options: [{ label: '加厚', price: 10 }]
-        });
-      }
+      // 果醬吐司與厚片吐司都有「加厚」選項
+      customRules.push({
+        key: 'thickness',
+        label: '厚度選擇',
+        type: 'toggle',
+        isRequired: false,
+        options: [{ label: '加厚', price: 10 }]
+      });
 
       return customRules;
     }
