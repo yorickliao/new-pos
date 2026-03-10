@@ -6,7 +6,7 @@ import { MenuItem } from '@/types/menu';
 import { useCart } from '@/hooks/useCart';
 
 // =============================================================================
-// 1. 飲品與套餐設定 (維持原樣)
+// 1. 飲品與套餐設定
 // =============================================================================
 
 type DrinkSize = 'S' | 'M' | 'L';
@@ -53,7 +53,8 @@ const DRINK_META: Record<string, DrinkConfig> = {
   '拿鐵咖啡':   { base: 50, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:50, L:75 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
   '特調咖啡':   { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:60 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
   '鴛鴦奶茶':   { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:60 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
-  '玉米濃湯':   { base: 40, baseSize: 'M', sizes: ['M'],           prices: { M:40 },             temps: ['hot'], isSoup: true }
+  // ★ 修改：濃湯加入大杯(L)選項，預設中杯40，大杯50
+  '玉米濃湯':   { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:50 },       temps: ['hot'], isSoup: true }
 };
 
 const SET_MEAL_DRINKS: SetMealDrink[] = [
@@ -97,7 +98,7 @@ const CAT_MAP: Record<string, string> = {
   '美味小點': 'snacks', '鍋燒系列': 'hotpot', '飲料': 'drinks', '研磨咖啡': 'coffee',
 };
 
-// --- 一般共用加肉選項 (已移除嫩雞、杏鮑菇) ---
+// --- 一般共用加肉選項 ---
 const MEAT_OPTIONS = [
   {label:'加火腿', price:15},
   {label:'加漢堡肉', price:20},
@@ -110,7 +111,7 @@ const MEAT_OPTIONS = [
   {label:'加厚牛', price:60}
 ];
 
-// --- 包含「不加蛋」的客製選項 (給漢堡、吐司、蔥抓餅加蛋用) ---
+// --- 包含「不加蛋」的客製選項 ---
 const CUSTOM_OPTIONS = [
   {label:'不加蛋', price:-5},
   {label:'不加菜', price:0},
@@ -118,7 +119,7 @@ const CUSTOM_OPTIONS = [
   {label:'菜多', price:10}
 ];
 
-// --- ★ 新增：沒有「不加蛋」的客製選項 (給總匯、帕瑪森系列用) ---
+// --- 沒有「不加蛋」的客製選項 ---
 const CUSTOM_OPTIONS_NO_EGG = [
   {label:'不加菜', price:0},
   {label:'不加醬', price:0},
@@ -129,6 +130,11 @@ const COMMON_ADDONS = [
   { type:'toggle', key:'egg',    label:'加蛋',   price:15 },
   { type:'toggle', key:'cheese', label:'加起司', price:10 },
   { type:'toggle', key:'meat',   label:'加肉',   options: MEAT_OPTIONS }
+];
+
+// 專門給特定套餐使用的加料規則 (移除客製選項)
+const COMBO_ADDON_RULES = [
+  ...COMMON_ADDONS
 ];
 
 const CATEGORY_OPTION_RULES: any = {
@@ -144,25 +150,24 @@ const CATEGORY_OPTION_RULES: any = {
   omelet: [
     ...COMMON_ADDONS
   ],
-  // ★ 總匯：改用 CUSTOM_OPTIONS_NO_EGG
   club: [
     ...COMMON_ADDONS,
     { type:'toggle', key:'remove', label:'客製',   options: CUSTOM_OPTIONS_NO_EGG }
   ],
-  // ★ 帕瑪森系列：改用 CUSTOM_OPTIONS_NO_EGG
   custom: [
     { type:'choice', key:'bread', label:'麵包體', isRequired: true, options:[{label:'帕瑪森', price:10}, {label:'捲餅', price:5}, {label:'香頌', price:5}, {label:'燒餅', price:0}] },
     ...COMMON_ADDONS,
     { type:'toggle', key:'remove', label:'客製',   options: CUSTOM_OPTIONS_NO_EGG }
   ],
-  // 美味小點是純單點，無加料
-  snacks: [],
+  snacks: [], // 美味小點是單點，沒有加料選項
   hotpot: [
     { type:'toggle', key:'add', label:'加料', options:[{label:'加起司', price:10}, {label:'加沙茶', price:10}, {label:'加麵', price:15}] }
   ],
-  setmeal: [], drinks: [], coffee: [], special: []
+  setmeal: [], // 一般套餐是空的
+  drinks: [], coffee: [], special: []
 };
 
+// ★ 在此把指定的單一品項加上專屬規則
 const ITEM_OPTION_RULES: any = {
   '蔥抓餅加蛋': [
     ...COMMON_ADDONS,
@@ -170,7 +175,29 @@ const ITEM_OPTION_RULES: any = {
   ],
   '荷包蛋': [
     { type:'choice', key:'doneness', label:'熟度', options:[{label:'全熟', price:0}, {label:'半熟', price:0}] }
-  ]
+  ],
+  '卡拉雞腿總匯': [
+    { 
+      type:'choice', 
+      key:'flavor', 
+      label:'口味選擇', 
+      isRequired: true, 
+      options:[{label:'原味', price:0}, {label:'辣味', price:0}] 
+    }
+  ],
+  '美式奔牛堡套餐': COMBO_ADDON_RULES,
+  '起飛嫩雞堡套餐': COMBO_ADDON_RULES,
+  '雙層豬肉起司堡套餐': COMBO_ADDON_RULES,
+  '德式帕瑪森套餐': COMBO_ADDON_RULES,
+  '檸檬雞柳麵套餐': COMBO_ADDON_RULES,
+  '蔥爆燒肉炒麵套餐': COMBO_ADDON_RULES,
+  '里肌鐵板麵套餐': COMBO_ADDON_RULES,
+  '招牌總匯套餐': COMBO_ADDON_RULES,
+  '美式脆雞堡套餐': COMBO_ADDON_RULES,
+  '沙嗲咖哩麵套餐': COMBO_ADDON_RULES,
+  '美式大豬堡套餐': COMBO_ADDON_RULES,
+  '鐵板麵加蛋（蘑菇）': COMBO_ADDON_RULES,
+  '鐵板麵加蛋（黑胡椒）': COMBO_ADDON_RULES,
 };
 
 // =============================================================================
@@ -209,12 +236,12 @@ export default function ModifierModal({ product, onClose }: Props) {
       setSetDrinkId('tea'); 
       setDrinkName('紅茶');
       setDrinkSize('S');
-    } else if (isDrink || isCoffee) {
+    } else if (isDrink || isCoffee || isSoup) { // ★ 加入 isSoup，確保點選單品濃湯時能正確初始化
       setDrinkName(product.name); 
       const meta = DRINK_META[product.name];
       if (meta) setDrinkSize(meta.baseSize || 'M');
     }
-  }, [isSet, isDrink, isCoffee, product.name]);
+  }, [isSet, isDrink, isCoffee, isSoup, product.name]);
 
   // ★★★ 核心邏輯：規則篩選與替換 ★★★
   const modifierGroups = useMemo(() => {
@@ -272,7 +299,6 @@ export default function ModifierModal({ product, onClose }: Props) {
           return {
             ...rule,
             options: (rule.options || []).filter((opt: any) => {
-              // 因為只有 CUSTOM_OPTIONS (有不加蛋) 才會進來判斷，總匯跟帕瑪森已經沒有這個選項了
               if (opt.label === '不加蛋') {
                 if (catKey === 'burger') return product.name.includes('蛋堡');
                 if (catKey === 'toast') return product.name.includes('蛋吐司');
@@ -347,16 +373,17 @@ export default function ModifierModal({ product, onClose }: Props) {
       const setDrink = SET_MEAL_DRINKS.find(x => x.id === setDrinkId);
       if (setDrink) p += calcDrinkPrice(drinkName, drinkSize, 'set');
     }
-    if ((isDrink || isCoffee) && !isSet) {
+    // ★ 更新：濃湯單點也要算加大差額
+    if ((isDrink || isCoffee || isSoup) && !isSet) {
       p += calcDrinkPrice(product.name, drinkSize, 'single');
     }
 
     return p * quantity;
-  }, [product.base_price, selections, upgradeId, drinkName, drinkSize, isSet, setDrinkId, isDrink, isCoffee, quantity]);
+  }, [product.base_price, selections, upgradeId, drinkName, drinkSize, isSet, setDrinkId, isDrink, isCoffee, isSoup, quantity]);
 
   // 送出表單
   const handleSubmit = () => {
-    // 檢查必選項目 (例如：帕瑪森麵包體、果醬口味)
+    // 檢查必選項目
     for (const group of modifierGroups) {
       if (group.isRequired) {
         const selectedInGroup = selections[group.key];
@@ -379,14 +406,15 @@ export default function ModifierModal({ product, onClose }: Props) {
       }
     });
 
-    // 處理飲品
+    // 處理飲品文字格式
     const fmtDrink = (name: string) => {
       const szMap:any = {S:'小', M:'中', L:'大'};
       const tpMap:any = {ice:'冰', no_ice:'去冰', hot:'熱'};
       const sgMap:any = {normal:'正常糖', unsweet:'無糖'};
       
       const meta = DRINK_META[name];
-      if (meta?.isSoup) return name;
+      // ★ 濃湯：只顯示 大小杯，不顯示溫度/甜度
+      if (meta?.isSoup) return `${name}(${szMap[drinkSize]})`; 
       
       let str = `${name}(${szMap[drinkSize]}/${tpMap[drinkTemp]}`;
       if (meta?.hasSugar) str += `/${sgMap[drinkSugar]}`;
@@ -410,15 +438,21 @@ export default function ModifierModal({ product, onClose }: Props) {
       }
     }
 
-    if ((isDrink || isCoffee) && !isSet && !isSoup) {
+    // ★ 處理單點飲品與濃湯
+    if ((isDrink || isCoffee || isSoup) && !isSet) {
       const szMap:any = {S:'小', M:'中', L:'大'};
       const tpMap:any = {ice:'冰', no_ice:'去冰', hot:'熱'};
       const sgMap:any = {normal:'正常糖', unsweet:'無糖'};
       const meta = DRINK_META[product.name];
       const extra = calcDrinkPrice(product.name, drinkSize, 'single');
       
-      let label = `${szMap[drinkSize]}/${tpMap[drinkTemp]}`;
-      if (meta?.hasSugar) label += `/${sgMap[drinkSugar]}`;
+      let label = '';
+      if (meta?.isSoup) {
+        label = `${szMap[drinkSize]}`; // 單點濃湯只顯示 "中" 或 "大"
+      } else {
+        label = `${szMap[drinkSize]}/${tpMap[drinkTemp]}`;
+        if (meta?.hasSugar) label += `/${sgMap[drinkSugar]}`;
+      }
       
       options.push({ id: 'spec', label, price: extra });
     }
@@ -451,7 +485,7 @@ export default function ModifierModal({ product, onClose }: Props) {
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
           
           {/* 一般選項 */}
-          {(!isDrink && !isCoffee) && modifierGroups.map((group: any) => (
+          {(!isDrink && !isCoffee && !isSoup) && modifierGroups.map((group: any) => (
             <div key={group.key}>
               <h3 className="font-black text-black mb-2.5 flex items-center gap-2 text-base">
                 {group.label}
@@ -504,10 +538,11 @@ export default function ModifierModal({ product, onClose }: Props) {
                 <ChevronDown className="absolute right-3 top-4 text-black pointer-events-none" size={20}/>
               </div>
 
-              {currentDrinkMeta && !currentDrinkMeta.isSoup && (
+              {currentDrinkMeta && (
                 <>
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
+                    {/* ★ 濃湯/飲料都會顯示大小杯 */}
+                    <div className={currentDrinkMeta.isSoup ? "col-span-2" : ""}>
                       <label className="text-xs font-bold text-black mb-1 block">杯型</label>
                       <select value={drinkSize} onChange={e=>setDrinkSize(e.target.value as DrinkSize)} className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-bold text-black text-sm">
                         {currentDrinkMeta.sizes.map(sz => (
@@ -518,14 +553,17 @@ export default function ModifierModal({ product, onClose }: Props) {
                         ))}
                       </select>
                     </div>
-                    <div>
-                      <label className="text-xs font-bold text-black mb-1 block">溫度</label>
-                      <select value={drinkTemp} onChange={e=>setDrinkTemp(e.target.value as DrinkTemp)} className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-bold text-black text-sm">
-                        {currentDrinkMeta.temps.map(t => (
-                          <option key={t} value={t}>{t==='ice'?'冰':(t==='no_ice'?'去冰':'熱')}</option>
-                        ))}
-                      </select>
-                    </div>
+                    {/* ★ 若是濃湯則隱藏溫度 */}
+                    {!currentDrinkMeta.isSoup && (
+                      <div>
+                        <label className="text-xs font-bold text-black mb-1 block">溫度</label>
+                        <select value={drinkTemp} onChange={e=>setDrinkTemp(e.target.value as DrinkTemp)} className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-bold text-black text-sm">
+                          {currentDrinkMeta.temps.map(t => (
+                            <option key={t} value={t}>{t==='ice'?'冰':(t==='no_ice'?'去冰':'熱')}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
                   {showSugarOption && (
                     <div>
@@ -600,10 +638,10 @@ export default function ModifierModal({ product, onClose }: Props) {
                     </div>
                   </div>
                   
-                  {currentDrinkMeta && !currentDrinkMeta.isSoup && (
+                  {currentDrinkMeta && (
                     <>
                       <div className="grid grid-cols-2 gap-3">
-                        <div>
+                        <div className={currentDrinkMeta.isSoup ? "col-span-2" : ""}>
                           <label className="text-xs font-bold text-black mb-1 block">杯型</label>
                           <select value={drinkSize} onChange={e=>setDrinkSize(e.target.value as DrinkSize)} className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-bold text-black text-sm">
                             {currentDrinkMeta.sizes.map(sz => (
@@ -614,14 +652,16 @@ export default function ModifierModal({ product, onClose }: Props) {
                             ))}
                           </select>
                         </div>
-                        <div>
-                          <label className="text-xs font-bold text-black mb-1 block">溫度</label>
-                          <select value={drinkTemp} onChange={e=>setDrinkTemp(e.target.value as DrinkTemp)} className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-bold text-black text-sm">
-                            {currentDrinkMeta.temps.map(t => (
-                              <option key={t} value={t}>{t==='ice'?'冰':(t==='no_ice'?'去冰':'熱')}</option>
-                            ))}
-                          </select>
-                        </div>
+                        {!currentDrinkMeta.isSoup && (
+                          <div>
+                            <label className="text-xs font-bold text-black mb-1 block">溫度</label>
+                            <select value={drinkTemp} onChange={e=>setDrinkTemp(e.target.value as DrinkTemp)} className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-bold text-black text-sm">
+                              {currentDrinkMeta.temps.map(t => (
+                                <option key={t} value={t}>{t==='ice'?'冰':(t==='no_ice'?'去冰':'熱')}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                       </div>
                       {showSugarOption && (
                         <div>
@@ -642,11 +682,11 @@ export default function ModifierModal({ product, onClose }: Props) {
             </div>
           )}
 
-          {/* 單點飲品/咖啡 規格 */}
-          {((isDrink || isCoffee) && !isSet && !isSoup) && currentDrinkMeta && (
+          {/* 單點飲品/咖啡/濃湯 規格 */}
+          {((isDrink || isCoffee || isSoup) && !isSet) && currentDrinkMeta && (
             <div className="bg-white p-4 rounded-2xl border border-slate-300 space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div className={currentDrinkMeta.isSoup ? "col-span-2" : ""}>
                   <label className="text-xs font-bold text-black mb-1 block">杯型</label>
                   <select value={drinkSize} onChange={e=>setDrinkSize(e.target.value as DrinkSize)} className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-bold text-black text-sm">
                     {currentDrinkMeta.sizes.map(sz => (
@@ -657,14 +697,16 @@ export default function ModifierModal({ product, onClose }: Props) {
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-black mb-1 block">溫度</label>
-                  <select value={drinkTemp} onChange={e=>setDrinkTemp(e.target.value as DrinkTemp)} className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-bold text-black text-sm">
-                    {currentDrinkMeta.temps.map(t => (
-                      <option key={t} value={t}>{t==='ice'?'冰':(t==='no_ice'?'去冰':'熱')}</option>
-                    ))}
-                  </select>
-                </div>
+                {!currentDrinkMeta.isSoup && (
+                  <div>
+                    <label className="text-xs font-bold text-black mb-1 block">溫度</label>
+                    <select value={drinkTemp} onChange={e=>setDrinkTemp(e.target.value as DrinkTemp)} className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-bold text-black text-sm">
+                      {currentDrinkMeta.temps.map(t => (
+                        <option key={t} value={t}>{t==='ice'?'冰':(t==='no_ice'?'去冰':'熱')}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
               {showSugarOption && (
                 <div>
