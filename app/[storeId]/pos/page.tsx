@@ -64,8 +64,6 @@ export default function POSPage() {
   const [pickupTime, setPickupTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [targetDateLabel, setTargetDateLabel] = useState('今日');
-
   // 1. 讀取店家資訊
   useEffect(() => {
     async function fetchStore() {
@@ -92,77 +90,118 @@ export default function POSPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // ★ 新增：計算「現在是否營業中」(isOpenNow)
-  const isOpenNow = useMemo(() => {
-    if (!storeInfo?.opening_time || !storeInfo?.closing_time) return false;
+  // ★ 3. 核心大腦：以「營業時間」為分界的狀態判斷
+  const { storeStatus, timeSlots, targetDateLabel } = useMemo(() => {
+    if (!storeInfo) return { storeStatus: 'LOADING', timeSlots: [], targetDateLabel: '今日' };
     
+    // 定義 A：店長手動關閉，徹底不接單
+    if (storeInfo.is_active === false) {
+      return { storeStatus: 'MANUAL_CLOSED', timeSlots: [], targetDateLabel: '暫停接單' };
+    }
+    if (!storeInfo.opening_time || !storeInfo.closing_time) {
+      return { storeStatus: 'NO_HOURS', timeSlots: [], targetDateLabel: '未設定時間' };
+    }
+
     const now = new Date();
+    const todayDay = now.getDay();
     const [openH, openM] = storeInfo.opening_time.split(':').map(Number);
     const [closeH, closeM] = storeInfo.closing_time.split(':').map(Number);
-    
-    // 設定今天的開店/打烊時間
+
     const openDate = new Date(); openDate.setHours(openH, openM, 0, 0);
     const closeDate = new Date(); closeDate.setHours(closeH, closeM, 0, 0);
-    
-    // 判斷現在是否在區間內
-    return now >= openDate && now <= closeDate;
+
+    // 解析 JSONB 裡的 preorder_next_day_after_close 設定
+    let allowNextDay = false;
+    if (storeInfo.settings) {
+      if (typeof storeInfo.settings === 'string') {
+        try { allowNextDay = JSON.parse(storeInfo.settings).preorder_next_day_after_close; } catch(e){}
+      } else {
+        allowNextDay = storeInfo.settings.preorder_next_day_after_close;
+      }
+    }
+
+    let currentStatus = 'OPEN_TODAY';
+    let currentLabel = '今日';
+    let generatedSlots: string[] = [];
+
+    // 以營業時間判斷是否跨越到了「下一個營業日」
+    if (now > closeDate) {
+      // 已經過了今天的打烊時間
+      if (allowNextDay) {
+        const nextDay = (todayDay + 1) % 7;
+        if (nextDay === 4) {
+          // 狀況：週三過了 13:00，目標預訂日是週四 -> 但週四公休
+          currentStatus = 'TOMORROW_CLOSED'; 
+          currentLabel = '明日公休';
+        } else {
+          // 狀況：週四過了 13:00，目標預訂日是週五 -> 開放預約週五！
+          currentStatus = 'OPEN_FOR_TOMORROW'; 
+          currentLabel = '明日';
+          
+          let startSlot = new Date();
+          startSlot.setDate(startSlot.getDate() + 1); // 明天
+          startSlot.setHours(openH, openM, 0, 0);
+          let endSlot = new Date(startSlot);
+          endSlot.setHours(closeH, closeM, 0, 0);
+
+          while (startSlot <= endSlot) {
+            generatedSlots.push(startSlot.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' }));
+            startSlot = new Date(startSlot.getTime() + 15 * 60000);
+          }
+        }
+      } else {
+        // 系統未開啟明日預約功能
+        currentStatus = 'CLOSED_TODAY'; 
+        currentLabel = '今日已打烊';
+      }
+    } else {
+      // 還沒到今天的打烊時間 (包含還沒開店的清晨)
+      if (todayDay === 4) {
+        // 狀況：週四 13:00 以前 -> 算在週四的營業日內，但週四公休
+        currentStatus = 'TODAY_CLOSED'; 
+        currentLabel = '今日公休';
+      } else {
+        // 正常營業日
+        currentStatus = 'OPEN_TODAY';
+        currentLabel = '今日';
+        
+        const bufferTime = new Date(now.getTime() + 15 * 60000); // 緩衝 15 分鐘
+        const remainder = bufferTime.getMinutes() % 15;
+        if (remainder !== 0) {
+          bufferTime.setMinutes(bufferTime.getMinutes() + (15 - remainder));
+        }
+        bufferTime.setSeconds(0);
+
+        // 如果還沒開店，就從開店時間開始排；如果已經開店，從緩衝時間開始排
+        let startSlot = bufferTime > openDate ? bufferTime : new Date(openDate);
+        while (startSlot <= closeDate) {
+          generatedSlots.push(startSlot.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' }));
+          startSlot = new Date(startSlot.getTime() + 15 * 60000);
+        }
+      }
+    }
+
+    return { storeStatus: currentStatus, timeSlots: generatedSlots, targetDateLabel: currentLabel };
   }, [storeInfo]);
 
-  // 如果非營業時間，強制切換回外帶 (避免客人原本選內用，結果過了一分鐘打烊了)
+  // ★ 4. 計算「當下實體店面是否開啟」(用來決定能不能點內用)
+  const isOpenNow = useMemo(() => {
+    // 只有狀態是「今日營業中」才有可能點內用
+    if (storeStatus !== 'OPEN_TODAY') return false;
+    
+    // 確切時間判斷：是否已經過了早上的開店時間
+    const now = new Date();
+    const [openH, openM] = storeInfo.opening_time.split(':').map(Number);
+    const openDate = new Date(); openDate.setHours(openH, openM, 0, 0);
+    return now >= openDate; 
+  }, [storeStatus, storeInfo]);
+
+  // 如果非實體營業時間，強制切換回外帶
   useEffect(() => {
     if (!isOpenNow && diningOption === 'dine_in') {
       setDiningOption('take_out');
     }
   }, [isOpenNow, diningOption]);
-
-  // 3. 計算取餐時間 (包含隔日預點邏輯)
-  const timeSlots = useMemo(() => {
-    if (!storeInfo?.opening_time || !storeInfo?.closing_time) return [];
-    
-    const slots: string[] = [];
-    const now = new Date();
-    
-    const [openH, openM] = storeInfo.opening_time.split(':').map(Number);
-    const [closeH, closeM] = storeInfo.closing_time.split(':').map(Number);
-    
-    let openDate = new Date(); openDate.setHours(openH, openM, 0, 0);
-    let closeDate = new Date(); closeDate.setHours(closeH, closeM, 0, 0);
-    
-    const allowNextDay = storeInfo.settings?.preorder_next_day_after_close || false;
-    let isNextDay = false;
-
-    if (now > closeDate && allowNextDay) {
-      isNextDay = true;
-      openDate.setDate(openDate.getDate() + 1);
-      closeDate.setDate(closeDate.getDate() + 1);
-      setTargetDateLabel('明日'); 
-    } else {
-      setTargetDateLabel('今日');
-    }
-
-    if (now > closeDate && !isNextDay) {
-       return []; 
-    }
-
-    let startSlot;
-    if (isNextDay) {
-      startSlot = openDate;
-    } else {
-      const bufferTime = new Date(now.getTime() + 15 * 60000); 
-      const remainder = bufferTime.getMinutes() % 15;
-      if (remainder !== 0) bufferTime.setMinutes(bufferTime.getMinutes() + (15 - remainder));
-      bufferTime.setSeconds(0);
-      startSlot = bufferTime > openDate ? bufferTime : openDate;
-    }
-
-    let currentSlot = startSlot;
-    while (currentSlot <= closeDate) {
-      slots.push(currentSlot.toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' }));
-      currentSlot = new Date(currentSlot.getTime() + 15 * 60000);
-    }
-    
-    return slots;
-  }, [storeInfo]);
 
   const categories = useMemo(() => {
     const cats = new Set(menu.map(m => m.categoryName || '其他'));
@@ -184,9 +223,15 @@ export default function POSPage() {
   
   // 5. 送出訂單
   const handleCheckout = async () => {
+    // 防呆：無法送單的狀態
+    if (storeStatus === 'MANUAL_CLOSED') return alert("店家目前暫停接單中，請稍後再試！");
+    if (storeStatus === 'TODAY_CLOSED') return alert("今日為固定公休日，暫停接單！");
+    if (storeStatus === 'TOMORROW_CLOSED') return alert("明日為固定公休日，目前無法預點！");
+    if (timeSlots.length === 0) return alert("目前沒有可選擇的取餐時間");
+
     if (items.length === 0) return;
     
-    // ★ 擋住內用：如果非營業時間，禁止送出內用單
+    // 擋住內用：如果實體店面沒開，禁止送內用單
     if (diningOption === 'dine_in' && !isOpenNow) {
       alert("抱歉，目前非營業時間，無法使用內用點餐。\n請選擇外帶預約。");
       return;
@@ -278,6 +323,39 @@ export default function POSPage() {
   return (
     <div className="flex flex-col md:flex-row h-screen bg-slate-100 font-sans relative overflow-hidden">
       
+      {/* 遮罩：店長手動暫停接單 */}
+      {storeStatus === 'MANUAL_CLOSED' && (
+        <div className="absolute inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-center justify-center flex-col text-white">
+          <div className="bg-orange-500 p-6 rounded-full mb-6 animate-pulse">
+            <Utensils size={64} />
+          </div>
+          <h1 className="text-4xl font-black mb-4 tracking-wide">暫停接單中</h1>
+          <p className="text-xl text-slate-300 font-bold">店家目前忙碌中，請稍後再試！</p>
+        </div>
+      )}
+
+      {/* 遮罩：週四公休 (週三下午～週四下午) */}
+      {(storeStatus === 'TODAY_CLOSED' || storeStatus === 'TOMORROW_CLOSED') && (
+        <div className="absolute inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-center justify-center flex-col text-white text-center px-4">
+          <div className="bg-red-500 p-6 rounded-full mb-6 animate-pulse">
+            <Store size={64} />
+          </div>
+          <h1 className="text-4xl font-black mb-4 tracking-wide">
+            {storeStatus === 'TODAY_CLOSED' ? '今日公休' : '明日為公休日'}
+          </h1>
+          <p className="text-xl text-slate-300 font-bold">
+            每週四為固定公休，期待為您服務！
+          </p>
+          {storeStatus === 'TOMORROW_CLOSED' && (
+             <p className="text-sm text-slate-400 font-bold mt-2">今日營業時間已過，且明日無法預訂</p>
+          )}
+        </div>
+      )}
+
+      {/* 注意：如果是 storeStatus === 'OPEN_FOR_TOMORROW' (週四下午預訂週五) 
+        系統就不會顯示任何全螢幕遮罩，客人可以正常瀏覽菜單跟加購物車！
+      */}
+
       {/* 左側：菜單區 */}
       <div className="w-full md:w-2/3 flex flex-col h-full relative z-10">
         <div className={`absolute top-0 left-0 right-0 z-10 border-b border-slate-200 pt-4 pb-2 px-6 shadow-sm transition-all duration-200 ${isScrolled ? 'bg-white/95 backdrop-blur-md' : 'bg-slate-100/90 backdrop-blur-md'}`}>
@@ -289,7 +367,8 @@ export default function POSPage() {
                 <div className="text-xs font-bold text-slate-500 mt-1 flex items-center gap-1">
                   <Clock size={10}/> 
                   {storeInfo.opening_time.slice(0,5)} - {storeInfo.closing_time.slice(0,5)}
-                  {!isOpenNow && <span className="ml-2 text-red-500 bg-red-50 px-1 rounded border border-red-100">已打烊</span>}
+                  {!isOpenNow && storeStatus === 'OPEN_TODAY' && <span className="ml-2 text-red-500 bg-red-50 px-1 rounded border border-red-100">實體店休息中</span>}
+                  {storeStatus === 'OPEN_FOR_TOMORROW' && <span className="ml-2 text-blue-500 bg-blue-50 px-1 rounded border border-blue-100">開放明日預訂</span>}
                 </div>
               )}
             </div>
@@ -344,7 +423,7 @@ export default function POSPage() {
         <div className="flex-1 flex flex-col h-full overflow-hidden">
           <div className="p-6 pb-4 bg-white border-b border-slate-100 flex-shrink-0">
             <div className="bg-slate-100 p-1.5 rounded-2xl flex mb-6 relative">
-               {/* ★ 修改按鈕邏輯：如果沒營業(isOpenNow=false)，內用按鈕變成灰色且不能按 */}
+               {/* 內用按鈕：實體店面營業中才能按 */}
                <button 
                   onClick={() => isOpenNow && setDiningOption('dine_in')} 
                   className={`flex-1 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all duration-200 z-10 
@@ -355,10 +434,10 @@ export default function POSPage() {
                             : 'text-slate-400 hover:text-slate-600'
                     }`}
                >
-                 <Utensils size={16} /> 內用 {!isOpenNow && "(休息中)"}
+                 <Utensils size={16} /> 內用 {!isOpenNow && "(無提供)"}
                </button>
                
-               <button onClick={() => setDiningOption('take_out')} className={`flex-1 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all duration-200 z-10 ${diningOption === 'take_out' ? 'bg-white text-green-600 shadow-md scale-100' : 'text-slate-400 hover:text-slate-600'}`}><ShoppingBag size={16} /> 外帶</button>
+               <button onClick={() => setDiningOption('take_out')} className={`flex-1 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all duration-200 z-10 ${diningOption === 'take_out' ? 'bg-white text-green-600 shadow-md scale-100' : 'text-slate-400 hover:text-slate-600'}`}><ShoppingBag size={16} /> 外帶預訂</button>
             </div>
             <div className="space-y-4 animate-fade-in">
               {diningOption === 'dine_in' ? (
@@ -390,9 +469,7 @@ export default function POSPage() {
                         ))
                       ) : (
                         <option disabled>
-                          {storeInfo?.settings?.preorder_next_day_after_close 
-                             ? "今日已打烊 (系統未開放明日預點)" 
-                             : "今日已打烊"}
+                          {targetDateLabel}
                         </option>
                       )}
                     </select>
@@ -431,8 +508,23 @@ export default function POSPage() {
           </div>
           <div className="p-6 bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-30 flex-shrink-0 pb-20 md:pb-6">
             <div className="flex justify-between items-end mb-6"><span className="text-slate-500 font-bold text-sm">訂單總金額</span><div className="flex items-baseline gap-1"><span className="text-4xl font-black text-slate-900">{formatPrice(total)}</span></div></div>
-            <button onClick={handleCheckout} disabled={items.length === 0 || isSubmitting} className={`w-full py-4 rounded-2xl text-xl font-bold shadow-xl transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 ${items.length === 0 || isSubmitting ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none" : diningOption === 'take_out' ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-200 shadow-green-100" : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-blue-200 shadow-blue-100"}`}>
-              {isSubmitting ? (<><Loader2 className="animate-spin" /> 處理中...</>) : (diningOption === 'take_out' ? '確認外帶下單' : '確認內用點餐')}
+            <button 
+              onClick={handleCheckout} 
+              disabled={items.length === 0 || isSubmitting || timeSlots.length === 0 || storeStatus === 'MANUAL_CLOSED'} 
+              className={`w-full py-4 rounded-2xl text-xl font-bold shadow-xl transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 
+              ${items.length === 0 || isSubmitting || timeSlots.length === 0 || storeStatus === 'MANUAL_CLOSED'
+                  ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none" 
+                  : diningOption === 'take_out' 
+                    ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-200 shadow-green-100" 
+                    : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-blue-200 shadow-blue-100"}`}
+            >
+              {isSubmitting 
+                ? (<><Loader2 className="animate-spin" /> 處理中...</>) 
+                : (storeStatus === 'MANUAL_CLOSED' 
+                    ? '暫停接單' 
+                    : timeSlots.length === 0 
+                      ? targetDateLabel 
+                      : (diningOption === 'take_out' ? '確認外帶下單' : '確認內用點餐'))}
             </button>
           </div>
         </div>

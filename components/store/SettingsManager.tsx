@@ -7,6 +7,7 @@ import { Power, Save, Clock, Loader2 } from 'lucide-react';
 export default function SettingsManager({ storeId }: { storeId: string }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [toggling, setToggling] = useState(false); // ★ 新增：專門給開關的讀取狀態
   const [settings, setSettings] = useState({
     name: '',
     address: '',
@@ -34,6 +35,36 @@ export default function SettingsManager({ storeId }: { storeId: string }) {
     fetchSettings();
   }, [storeId]);
 
+  // ★ 新增：專門處理「接單開關」的函數 (即時更新 DB)
+  const handleToggleActive = async () => {
+    if (toggling) return;
+    setToggling(true);
+    
+    const newActiveStatus = !settings.is_active;
+    
+    // 1. 樂觀更新：先讓畫面上的開關切過去，反應最快
+    setSettings(prev => ({ ...prev, is_active: newActiveStatus }));
+
+    try {
+      // 2. 背景默默去改資料庫
+      const { error } = await supabase
+        .from('stores')
+        .update({ is_active: newActiveStatus })
+        .eq('id', storeId);
+        
+      if (error) throw error;
+      // 成功的話不用做什麼，畫面已經是對的了
+    } catch (err) {
+      console.error('切換營業狀態失敗', err);
+      alert('切換接單狀態失敗，請檢查網路連線！');
+      // 3. 如果失敗了，把畫面上的開關切回來
+      setSettings(prev => ({ ...prev, is_active: !newActiveStatus }));
+    } finally {
+      setToggling(false);
+    }
+  };
+
+  // 原本的儲存按鈕 (現在專門存時間、電話等表單資料)
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -44,7 +75,8 @@ export default function SettingsManager({ storeId }: { storeId: string }) {
           phone: settings.phone,
           opening_time: settings.opening_time,
           closing_time: settings.closing_time,
-          is_active: settings.is_active
+          // 這裡順便帶上 is_active，確保資料一致，但主要靠上面的開關函數控制
+          is_active: settings.is_active 
         })
         .eq('id', storeId);
       if (error) throw error;
@@ -69,11 +101,17 @@ export default function SettingsManager({ storeId }: { storeId: string }) {
           </div>
         </div>
         <button
-          onClick={() => setSettings({ ...settings, is_active: !settings.is_active })}
-          className={`relative w-16 h-8 rounded-full transition-colors duration-300 ${settings.is_active ? 'bg-green-500' : 'bg-slate-300'}`}
+          type="button" // ★ 加上 type="button" 避免按開關時不小心送出表單
+          onClick={handleToggleActive}
+          disabled={toggling}
+          className={`relative w-16 h-8 rounded-full transition-colors duration-300 ${settings.is_active ? 'bg-green-500' : 'bg-slate-300'} ${toggling ? 'opacity-50 cursor-wait' : ''}`}
         >
           <div className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300 flex items-center justify-center ${settings.is_active ? 'translate-x-8' : 'translate-x-0'}`}>
-            <Power size={12} className={settings.is_active ? 'text-green-500' : 'text-slate-400'} />
+            {toggling ? (
+               <Loader2 size={12} className="text-slate-400 animate-spin" />
+            ) : (
+               <Power size={12} className={settings.is_active ? 'text-green-500' : 'text-slate-400'} />
+            )}
           </div>
         </button>
       </div>

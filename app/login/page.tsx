@@ -59,9 +59,9 @@ export default function LoginPage() {
           break;
 
         case 'store_manager':
-          // 🏠 店長 -> 改為直接去「訂單管理頁」
+          
           if (!profile.assigned_store_id) throw new Error('此店長帳號未綁定分店');
-          router.push(`/${profile.assigned_store_id}/orders`); // ★ 修改這裡
+          router.push(`/${profile.assigned_store_id}/dashboard`); 
           break;
 
         case 'cashier':
