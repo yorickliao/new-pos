@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import type { UIModifierOption } from '@/types/menu'; 
 import { History, X, Trash2, Undo2, Search, CheckCircle2, DollarSign , Clock, Loader2 } from 'lucide-react';
@@ -64,7 +63,7 @@ function floorToSlot(d: Date) {
   return new Date(Math.floor(ms / slotMs) * slotMs);
 }
 
-// ★ 修改：改為動態函式，接收開始與結束時間參數
+// 改為動態函式，接收開始與結束時間參數
 function buildServiceSlots(dateKey: string, start: {hh:number, mm:number}, end: {hh:number, mm:number}) {
   const startDate = new Date(`${dateKey}T${pad2(start.hh)}:${pad2(start.mm)}:00`);
   const endDate = new Date(`${dateKey}T${pad2(end.hh)}:${pad2(end.mm)}:00`);
@@ -82,9 +81,9 @@ function buildServiceSlots(dateKey: string, start: {hh:number, mm:number}, end: 
   return slots;
 }
 
-export default function KitchenPage() {
-  const params = useParams();
-  const storeId = params.storeId as string;
+// ★ 1. 將元件名稱改為 OrdersManager，並接收 storeId 參數
+export default function OrdersManager({ storeId }: { storeId: string }) {
+  // ★ 2. 移除原本使用 useParams() 抓取 storeId 的邏輯
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [historyOrders, setHistoryOrders] = useState<Order[]>([]);
@@ -95,11 +94,11 @@ export default function KitchenPage() {
   const [search, setSearch] = useState('');
   const [showServedInMain, setShowServedInMain] = useState(true);
 
-  // ★ 新增：營業時間狀態 (預設給個大概值，避免畫面一開始空的)
+  // 營業時間狀態 (預設給個大概值，避免畫面一開始空的)
   const [storeHours, setStoreHours] = useState({ start: {hh:6, mm:0}, end: {hh:14, mm:0} });
   const [storeName, setStoreName] = useState('載入中...');
 
-  // ★ 新增：讀取店家營業時間
+  // 讀取店家營業時間
   useEffect(() => {
     async function fetchStoreSettings() {
       try {
@@ -125,7 +124,7 @@ export default function KitchenPage() {
         console.error('讀取店家設定失敗', err);
       }
     }
-    fetchStoreSettings();
+    if (storeId) fetchStoreSettings();
   }, [storeId]);
 
   // 抓取「當日」訂單
@@ -148,7 +147,7 @@ export default function KitchenPage() {
       return;
     }
 
-    // ★ 前端精準過濾
+    // 前端精準過濾
     const targetYMD = selectedDate; 
     
     const filtered = (data || []).filter((o: Order) => {
@@ -214,6 +213,7 @@ export default function KitchenPage() {
 
   // 即時監聽
   useEffect(() => {
+    if (!storeId) return;
     fetchOrders();
     const channel = supabase
       .channel('kitchen-orders')
@@ -245,9 +245,8 @@ export default function KitchenPage() {
     });
   }, [orders, search]);
 
-  // --- ★ 時段分組邏輯 (依賴 storeHours) ---
+  // --- 時段分組邏輯 (依賴 storeHours) ---
   const slots = useMemo(() => {
-    // 傳入從資料庫讀取到的營業時間
     return buildServiceSlots(selectedDate, storeHours.start, storeHours.end);
   }, [selectedDate, storeHours]);
   
@@ -261,7 +260,6 @@ export default function KitchenPage() {
       if (!showServedInMain && (o.status === 'served' || o.status === 'completed')) continue;
 
       if (o.pickup_time) {
-        // 處理格式相容性
         const dtStr = o.pickup_time.replace(' ', 'T') + ':00'; 
         const dt = new Date(dtStr); 
         
@@ -276,7 +274,6 @@ export default function KitchenPage() {
         if (map.has(key)) {
           map.get(key)!.push(o);
         } else {
-          // 如果早於營業時間或晚於營業時間，就放到即時單區
           map.get(INSTANT_KEY)!.push(o);
         }
       } else {
@@ -287,7 +284,7 @@ export default function KitchenPage() {
   }, [filteredOrders, slots, showServedInMain]); 
 
   // 渲染選項 (共用函式)
-  const renderItemOptions = (optionsRaw: any) => {
+  const renderItemOptionsInner = (optionsRaw: any) => {
     const options = parseOptions(optionsRaw);
     if (options.length === 0) return null;
 
@@ -315,7 +312,7 @@ export default function KitchenPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 p-4 md:p-6 text-white font-sans relative">
+    <div className="bg-gray-900 p-4 md:p-6 text-white font-sans relative rounded-3xl min-h-[80vh]">
       
       {/* 頂部導覽列 */}
       <div className="flex flex-col gap-4 mb-8">
@@ -329,10 +326,7 @@ export default function KitchenPage() {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => {
-                setShowHistory(true);
-                fetchHistory(); // ★ 補上這行！打開抽屜的同時去抓資料
-              }}
+              onClick={() => setShowHistory(true)}
               className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg transition border border-gray-700 text-sm font-bold"
             >
               <History size={18} />
@@ -411,7 +405,6 @@ export default function KitchenPage() {
         {/* 2. 預約單 (按時段) */}
         {slots.map((slot) => {
           const list = grouped.get(slot.key) || [];
-          // 如果該時段沒單，就不顯示標題，保持畫面乾淨
           if (list.length === 0) return null;
 
           return (
