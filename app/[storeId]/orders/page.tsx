@@ -212,16 +212,35 @@ export default function KitchenPage() {
     }
   };
 
-  // 即時監聽
+  // 即時監聽與自動更新 (雙重保險)
   useEffect(() => {
+    if (!storeId) return;
+    
+    // 1. 初始抓取
     fetchOrders();
+
+    // 2. Supabase 即時監聽 (只要資料庫一有變動立刻更新)
     const channel = supabase
       .channel('kitchen-orders')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
         setTimeout(() => { fetchOrders(); if (showHistory) fetchHistory(); }, 500);
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+
+    // ★ 3. 新增：每 15 秒自動更新 (避免網路斷線漏接訊號)
+    const intervalId = setInterval(() => {
+      fetchOrders();
+      // 如果歷史紀錄抽屜是開著的，也順便更新一下
+      if (showHistory) {
+        fetchHistory();
+      }
+    }, 15000); // 15000 毫秒 = 15 秒
+
+    // 清除監聽與計時器 (當離開這個畫面時)
+    return () => { 
+      supabase.removeChannel(channel); 
+      clearInterval(intervalId); // ★ 記得清除計時器
+    };
   }, [selectedDate, showHistory, storeId]);
 
   // 統計數據
