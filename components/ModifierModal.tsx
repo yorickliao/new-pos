@@ -189,15 +189,31 @@ const ITEM_OPTION_RULES: any = {
   '起飛嫩雞堡套餐': COMBO_ADDON_RULES,
   '雙層豬肉起司堡套餐': COMBO_ADDON_RULES,
   '德式帕瑪森套餐': COMBO_ADDON_RULES,
-  '檸檬雞柳麵套餐': COMBO_ADDON_RULES,
-  '蔥爆燒肉炒麵套餐': COMBO_ADDON_RULES,
-  '里肌鐵板麵套餐': COMBO_ADDON_RULES,
+  '檸檬雞柳麵套餐': [
+      { type: 'choice', key: 'flavor', label: '醬料選擇', isRequired: true, options: [{label:'紅醬', price:0}, {label:'青醬', price:0}, {label:'白醬', price:0}] },
+      ...COMBO_ADDON_RULES
+    ],
+  '蔥爆燒肉炒麵套餐': [
+    { type: 'choice', key: 'flavor', label: '口味選擇', isRequired: true, options: [{label:'沙茶', price:0}, {label:'蔥燒', price:0}] },
+    ...COMBO_ADDON_RULES
+  ],
+  '里肌鐵板麵套餐': [
+    { type: 'choice', key: 'flavor', label: '醬料選擇', isRequired: true, options: [{label:'黑胡椒', price:0}, {label:'蘑菇', price:0}] },
+    ...COMBO_ADDON_RULES
+  ],
   '招牌總匯套餐': COMBO_ADDON_RULES,
-  '美式脆雞堡套餐': COMBO_ADDON_RULES,
+  '美式脆雞堡套餐': [
+    { type: 'choice', key: 'flavor', label: '口味選擇', isRequired: true, options: [{label:'原味', price:0}, {label:'辣味', price:0}] },
+    ...COMBO_ADDON_RULES
+  ],
   '沙嗲咖哩麵套餐': COMBO_ADDON_RULES,
   '美式大豬堡套餐': COMBO_ADDON_RULES,
   '鐵板麵加蛋（蘑菇）': COMBO_ADDON_RULES,
   '鐵板麵加蛋（黑胡椒）': COMBO_ADDON_RULES,
+  '魚柳鍋燒意麵套餐': [
+    { type: 'choice', key: 'noodle', label: '麵體選擇', isRequired: true, options: [{label:'冬粉', price:0}, {label:'意麵', price:0}, {label:'雞絲', price:0}, {label:'烏龍', price:5}] },
+    ...COMBO_ADDON_RULES
+  ],
 };
 
 // =============================================================================
