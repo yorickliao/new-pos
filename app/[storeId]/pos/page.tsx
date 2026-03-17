@@ -377,7 +377,7 @@ export default function POSPage() {
                 <div className="text-xs font-bold text-slate-500 mt-1 flex items-center gap-1">
                   <Clock size={10}/> 
                   {storeInfo.opening_time.slice(0,5)} - {storeInfo.closing_time.slice(0,5)}
-                  {!isOpenNow && storeStatus === 'OPEN_TODAY' && <span className="ml-2 text-red-500 bg-red-50 px-1 rounded border border-red-100">實體店休息中</span>}
+                  {!isOpenNow && storeStatus === 'OPEN_TODAY' && <span className="ml-2 text-red-500 bg-red-50 px-1 rounded border border-red-100">開放預訂</span>}
                   {storeStatus === 'OPEN_FOR_TOMORROW' && <span className="ml-2 text-blue-500 bg-blue-50 px-1 rounded border border-blue-100">開放明日預訂</span>}
                 </div>
               )}
