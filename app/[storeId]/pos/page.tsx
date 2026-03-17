@@ -90,18 +90,6 @@ export default function POSPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // ★★★ 把解決滾動穿透的程式碼加在這裡 ★★★
-  useEffect(() => {
-    if (isMobileCartOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isMobileCartOpen]);
-
   // ★ 3. 核心大腦：以「營業時間」為分界的狀態判斷
   const { storeStatus, timeSlots, targetDateLabel } = useMemo(() => {
     if (!storeInfo) return { storeStatus: 'LOADING', timeSlots: [], targetDateLabel: '今日' };
@@ -427,90 +415,118 @@ export default function POSPage() {
         </button>
       </div>
 
-      {/* 手機版全螢幕 / 桌機側邊購物車 */}
-      <div className={`fixed inset-0 z-50 bg-white transition-transform duration-300 transform md:relative md:transform-none md:w-1/3 flex flex-col h-[100dvh] md:h-full md:z-auto md:shadow-2xl md:border-l md:border-slate-200 md:inset-auto md:translate-y-0 ${isMobileCartOpen ? "translate-y-0" : "translate-y-full"}`}>
-        
-        {/* 1. 固定頁首 - flex-shrink-0 確保不被壓縮 */}
-        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 flex-shrink-0">
+      <div className={`fixed inset-0 z-50 bg-white transition-transform duration-300 transform md:relative md:transform-none md:w-1/3 md:flex md:flex-col md:h-full md:z-auto md:shadow-2xl md:border-l md:border-slate-200 md:inset-auto md:translate-y-0 ${isMobileCartOpen ? "translate-y-0" : "translate-y-full"}`}>
+        <div className="md:hidden p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
           <h2 className="font-bold text-lg text-slate-800">訂單明細</h2>
-          <button onClick={() => setIsMobileCartOpen(false)} className="md:hidden p-2 bg-white rounded-full shadow text-slate-600"><ChevronDown /></button>
+          <button onClick={() => setIsMobileCartOpen(false)} className="p-2 bg-white rounded-full shadow text-slate-600"><ChevronDown /></button>
         </div>
-      
-        {/* 2. 核心捲動區 - flex-1 搭配 overflow-y-auto，並加上 min-h-0 這是 Flex 捲動的關鍵 */}
-        <div className="flex-1 overflow-y-auto min-h-0 bg-white">
-          
-          {/* 內外帶資訊區 */}
-          <div className="p-6 pb-4 border-b border-slate-100">
-            <div className="bg-slate-100 p-1.5 rounded-2xl flex mb-6">
-              <button 
-                onClick={() => isOpenNow && setDiningOption('dine_in')} 
-                className={`flex-1 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all ${!isOpenNow ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : diningOption === 'dine_in' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-400'}`}
-              >
-                <Utensils size={16} /> 內用 {!isOpenNow && "(無提供)"}
-              </button>
-              <button onClick={() => setDiningOption('take_out')} className={`flex-1 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all ${diningOption === 'take_out' ? 'bg-white text-green-600 shadow-md' : 'text-slate-400'}`}>
-                <ShoppingBag size={16} /> 外帶預訂
-              </button>
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
+          <div className="p-6 pb-4 bg-white border-b border-slate-100 flex-shrink-0">
+            <div className="bg-slate-100 p-1.5 rounded-2xl flex mb-6 relative">
+               {/* 內用按鈕：實體店面營業中才能按 */}
+               <button 
+                  onClick={() => isOpenNow && setDiningOption('dine_in')} 
+                  className={`flex-1 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all duration-200 z-10 
+                    ${!isOpenNow 
+                        ? 'bg-slate-100 text-slate-300 cursor-not-allowed border border-transparent' 
+                        : diningOption === 'dine_in' 
+                            ? 'bg-white text-blue-600 shadow-md scale-100' 
+                            : 'text-slate-400 hover:text-slate-600'
+                    }`}
+               >
+                 <Utensils size={16} /> 內用 {!isOpenNow && "(無提供)"}
+               </button>
+               
+               <button onClick={() => setDiningOption('take_out')} className={`flex-1 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all duration-200 z-10 ${diningOption === 'take_out' ? 'bg-white text-green-600 shadow-md scale-100' : 'text-slate-400 hover:text-slate-600'}`}><ShoppingBag size={16} /> 外帶預訂</button>
             </div>
-      
-            <div className="space-y-4">
+            <div className="space-y-4 animate-fade-in">
               {diningOption === 'dine_in' ? (
-                <input type="text" value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} placeholder="請輸入桌號 (選填)" className="w-full bg-slate-50 rounded-2xl py-3 px-4 font-bold border-2 border-transparent focus:border-blue-500 outline-none" />
+                 <div className="relative group">
+                    <div className="absolute left-3 top-3.5 text-slate-400"><MapPin size={18} /></div>
+                    <input type="text" value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} placeholder="請輸入桌號 (選填)" className="w-full bg-slate-50 rounded-2xl py-3 pl-10 pr-3 font-bold text-slate-800 outline-none focus:bg-white border-2 border-transparent focus:border-blue-500 transition placeholder:text-slate-400" />
+                 </div>
               ) : (
-                <div className="space-y-3">
-                  <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="您的姓名" className="w-full bg-slate-50 rounded-2xl py-3 px-4 font-bold border-2 border-transparent focus:border-green-500 outline-none" />
-                  <input type="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="您的電話" className="w-full bg-slate-50 rounded-2xl py-3 px-4 font-bold border-2 border-transparent focus:border-green-500 outline-none" />
-                  <select value={pickupTime} onChange={(e) => setPickupTime(e.target.value)} className="w-full bg-slate-50 rounded-2xl py-3 px-4 font-bold border-2 border-transparent focus:border-green-500 outline-none">
-                    <option value="">選擇取餐時間 ({targetDateLabel})</option>
-                    {timeSlots.map(time => <option key={time} value={time}>{targetDateLabel === '明日' ? `明日 ${time}` : time}</option>)}
-                  </select>
+                 <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="relative group">
+                      <div className="absolute left-3 top-3.5 text-slate-400"><User size={18} /></div>
+                      <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="您的姓名" className="w-full bg-slate-50 rounded-2xl py-3 pl-10 pr-3 font-bold text-slate-800 outline-none focus:bg-white border-2 border-transparent focus:border-green-500 transition placeholder:text-slate-400" />
+                    </div>
+                    <div className="relative group">
+                      <div className="absolute left-3 top-3.5 text-slate-400"><Phone size={18} /></div>
+                      <input type="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="您的電話" className="w-full bg-slate-50 rounded-2xl py-3 pl-10 pr-3 font-bold text-slate-800 outline-none focus:bg-white border-2 border-transparent focus:border-green-500 transition placeholder:text-slate-400" />
+                    </div>
+                  </div>
+                  <div className="relative group">
+                    <div className="absolute left-3 top-3.5 text-slate-400"><Clock size={18} /></div>
+                    <select value={pickupTime} onChange={(e) => setPickupTime(e.target.value)} className="w-full bg-slate-50 rounded-2xl py-3 pl-10 pr-3 font-bold text-slate-800 outline-none focus:bg-white border-2 border-transparent focus:border-green-500 transition appearance-none cursor-pointer">
+                      <option value="">請選擇取餐時間 ({targetDateLabel})</option>
+                      {timeSlots.length > 0 ? (
+                        timeSlots.map((time) => (
+                          <option key={time} value={time}>
+                            {targetDateLabel === '明日' ? `明日 ${time}` : time}
+                          </option>
+                        ))
+                      ) : (
+                        <option disabled>
+                          {targetDateLabel}
+                        </option>
+                      )}
+                    </select>
+                    <div className="absolute right-3 top-4 text-slate-400 pointer-events-none"><ChevronDown size={16} /></div>
+                  </div>
                 </div>
               )}
             </div>
           </div>
-      
-          {/* 品項列表區 */}
-          <div className="p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white pb-32 md:pb-4">
             {items.length === 0 ? (
-              <div className="py-20 flex flex-col items-center justify-center text-slate-300 opacity-50">
-                <ShoppingCart size={48} className="mb-4" />
-                <p className="font-bold">尚未點餐</p>
-              </div>
+              <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-4 opacity-50"><div className="bg-slate-50 p-6 rounded-full"><ShoppingCart size={48} /></div><p className="font-bold">尚未點餐</p><button onClick={() => setIsMobileCartOpen(false)} className="md:hidden text-blue-500 font-bold hover:underline">← 返回菜單</button></div>
             ) : (
               items.map((item) => (
-                <div key={item.cartId} className="bg-white border border-slate-100 p-3 rounded-2xl shadow-sm relative">
-                  <button onClick={() => removeItem(item.cartId)} className="absolute top-2 right-2 p-1 text-slate-300 hover:text-red-500"><X size={18} /></button>
-                  <div className="font-bold text-slate-800">{item.name}</div>
-                  <div className="flex justify-between items-center mt-2">
-                    <div className="text-blue-600 font-bold">{formatPrice(item.subtotal)}</div>
+                <div key={item.cartId} className="group flex flex-col bg-white border border-slate-100 p-3 rounded-2xl hover:border-slate-300 transition-colors shadow-sm relative">
+                  <button onClick={() => removeItem(item.cartId)} className="absolute top-2 right-2 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition"><X size={16} /></button>
+                  <div className="flex justify-between items-start pr-8">
+                    <div>
+                      <div className="font-bold text-slate-800 text-lg">{item.name}</div>
+                      {item.selectedOptions && item.selectedOptions.length > 0 && (<div className="text-sm text-slate-500 mt-1 flex flex-wrap gap-1">{item.selectedOptions.map(opt => (<span key={opt.id} className="bg-slate-50 px-1.5 py-0.5 rounded text-xs">{opt.label}</span>))}</div>)}
+                    </div>
+                    <div className="text-right"><div className="font-bold text-slate-900">{formatPrice(item.subtotal)}</div><div className="text-xs text-slate-400">單價 ${item.base_price}</div></div>
+                  </div>
+                  <div className="mt-3 pt-2 border-t border-dashed border-slate-100 flex justify-between items-center">
+                    <div className="text-xs text-slate-400 font-bold">數量</div>
                     <div className="flex items-center gap-3 bg-slate-50 rounded-lg p-1">
-                      <button onClick={() => updateQuantity(item.cartId, -1)} className="w-7 h-7 bg-white rounded shadow-sm">-</button>
-                      <span className="font-black w-4 text-center">{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.cartId, 1)} className="w-7 h-7 bg-white rounded shadow-sm">+</button>
+                      <button onClick={() => updateQuantity(item.cartId, -1)} className="w-7 h-7 flex items-center justify-center bg-white rounded shadow-sm text-slate-600 hover:text-blue-600 active:scale-95"><Minus size={14} /></button>
+                      <span className="font-black text-slate-800 w-4 text-center">{item.quantity}</span>
+                      <button onClick={() => updateQuantity(item.cartId, 1)} className="w-7 h-7 flex items-center justify-center bg-white rounded shadow-sm text-slate-600 hover:text-blue-600 active:scale-95"><Plus size={14} /></button>
                     </div>
                   </div>
                 </div>
               ))
             )}
-            {items.length > 0 && (
-              <button onClick={clearCart} className="w-full text-slate-400 text-xs font-bold py-4">清空購物車</button>
-            )}
+            {items.length > 0 && <div className="flex justify-center mt-4"><button onClick={clearCart} className="flex items-center gap-2 text-slate-400 hover:text-red-500 text-xs font-bold py-2 px-4 rounded-full hover:bg-red-50 transition"><Trash2 size={14} /> 清空購物車</button></div>}
           </div>
-        </div>
-      
-        {/* 3. 固定底部按鈕 - flex-shrink-0 絕對不准縮小 */}
-        <div className="p-6 bg-white border-t border-slate-100 flex-shrink-0 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:pb-6">
-          <div className="flex justify-between items-end mb-4">
-            <span className="text-slate-500 font-bold">總金額</span>
-            <span className="text-3xl font-black">{formatPrice(total)}</span>
+          <div className="p-6 bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-30 flex-shrink-0 pb-20 md:pb-6">
+            <div className="flex justify-between items-end mb-6"><span className="text-slate-500 font-bold text-sm">訂單總金額</span><div className="flex items-baseline gap-1"><span className="text-4xl font-black text-slate-900">{formatPrice(total)}</span></div></div>
+            <button 
+              onClick={handleCheckout} 
+              disabled={items.length === 0 || isSubmitting || timeSlots.length === 0 || storeStatus === 'MANUAL_CLOSED'} 
+              className={`w-full py-4 rounded-2xl text-xl font-bold shadow-xl transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 
+              ${items.length === 0 || isSubmitting || timeSlots.length === 0 || storeStatus === 'MANUAL_CLOSED'
+                  ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none" 
+                  : diningOption === 'take_out' 
+                    ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-200 shadow-green-100" 
+                    : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-blue-200 shadow-blue-100"}`}
+            >
+              {isSubmitting 
+                ? (<><Loader2 className="animate-spin" /> 處理中...</>) 
+                : (storeStatus === 'MANUAL_CLOSED' 
+                    ? '暫停接單' 
+                    : timeSlots.length === 0 
+                      ? targetDateLabel 
+                      : (diningOption === 'take_out' ? '確認外帶下單' : '確認內用點餐'))}
+            </button>
           </div>
-          <button 
-            onClick={handleCheckout} 
-            disabled={items.length === 0 || isSubmitting} 
-            className={`w-full py-4 rounded-2xl text-xl font-bold shadow-xl active:scale-95 transition-all ${items.length === 0 ? "bg-slate-200 text-slate-400" : "bg-slate-900 text-white"}`}
-          >
-            {isSubmitting ? '處理中...' : '確認下單'}
-          </button>
         </div>
       </div>
 
