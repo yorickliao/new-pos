@@ -95,7 +95,7 @@ export default function POSPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // ★ 新增：解決手機版滑動穿透 (Scroll Bleed) 問題
+  // 解決手機版背後畫面滑動穿透 (Scroll Bleed) 問題
   useEffect(() => {
     if (isMobileCartOpen) {
       document.body.style.overflow = 'hidden';
@@ -127,7 +127,6 @@ export default function POSPage() {
     const openDate = new Date(); openDate.setHours(openH, openM, 0, 0);
     const closeDate = new Date(); closeDate.setHours(closeH, closeM, 0, 0);
 
-    // 解析 JSONB 裡的 preorder_next_day_after_close 設定
     let allowNextDay = false;
     if (storeInfo.settings) {
       if (typeof storeInfo.settings === 'string') {
@@ -206,10 +205,7 @@ export default function POSPage() {
 
   // 4. 計算「當下實體店面是否開啟」(用來決定能不能點內用)
   const isOpenNow = useMemo(() => {
-    // 只有狀態是「今日營業中」才有可能點內用
     if (storeStatus !== 'OPEN_TODAY') return false;
-    
-    // 確切時間判斷：是否已經過了早上的開店時間
     const now = new Date();
     const [openH, openM] = storeInfo?.opening_time?.split(':').map(Number) || [0, 0];
     const openDate = new Date(); openDate.setHours(openH, openM, 0, 0);
@@ -243,7 +239,6 @@ export default function POSPage() {
   
   // 5. 送出訂單
   const handleCheckout = async () => {
-    // 防呆：無法送單的狀態
     if (storeStatus === 'MANUAL_CLOSED') return alert("店家目前暫停接單中，請稍後再試！");
     if (storeStatus === 'TODAY_CLOSED') return alert("今日為固定公休日，暫停接單！");
     if (storeStatus === 'TOMORROW_CLOSED') return alert("明日為固定公休日，目前無法預點！");
@@ -251,7 +246,6 @@ export default function POSPage() {
 
     if (items.length === 0) return;
     
-    // 擋住內用：如果實體店面沒開，禁止送內用單
     if (diningOption === 'dine_in' && !isOpenNow) {
       alert("抱歉，目前非營業時間，無法使用內用點餐。\n請選擇外帶預約。");
       return;
@@ -354,7 +348,7 @@ export default function POSPage() {
         </div>
       )}
 
-      {/* 遮罩：週四公休 (週三下午～週四下午) */}
+      {/* 遮罩：週四公休 */}
       {(storeStatus === 'TODAY_CLOSED' || storeStatus === 'TOMORROW_CLOSED') && (
         <div className="absolute inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-center justify-center flex-col text-white text-center px-4">
           <div className="bg-red-500 p-6 rounded-full mb-6 animate-pulse">
@@ -431,17 +425,19 @@ export default function POSPage() {
         </button>
       </div>
 
-      <div className={`fixed inset-0 z-50 bg-white transition-transform duration-300 transform md:relative md:transform-none md:w-1/3 md:flex md:flex-col md:h-[100dvh] md:z-auto md:shadow-2xl md:border-l md:border-slate-200 md:inset-auto md:translate-y-0 ${isMobileCartOpen ? "translate-y-0" : "translate-y-full"}`}>
+      {/* ★ 購物車抽屜主結構：加入 flex flex-col 讓外層正確計算高度，啟用內層滑動 */}
+      <div className={`fixed inset-0 z-50 bg-white flex flex-col h-[100dvh] transition-transform duration-300 transform md:relative md:transform-none md:w-1/3 md:z-auto md:shadow-2xl md:border-l md:border-slate-200 md:inset-auto md:translate-y-0 ${isMobileCartOpen ? "translate-y-0" : "translate-y-full"}`}>
         
-        {/* 頂部控制 */}
+        {/* 頂部控制列 (固定不動) */}
         <div className="md:hidden p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 flex-shrink-0">
           <h2 className="font-bold text-lg text-slate-800">訂單明細</h2>
           <button onClick={() => setIsMobileCartOpen(false)} className="p-2 bg-white rounded-full shadow text-slate-600"><ChevronDown /></button>
         </div>
         
-        <div className="flex-1 flex flex-col overflow-y-auto bg-slate-50">
+        {/* ★ 外層：整體內容滑動區塊 (包含表單 + 明細 + 按鈕) */}
+        <div className="flex-1 flex flex-col overflow-y-auto bg-slate-50 relative">
           
-          {/* 表單區塊 */}
+          {/* 1. 表單區塊 */}
           <div className="p-6 pb-4 bg-white border-b border-slate-100 flex-shrink-0">
             <div className="bg-slate-100 p-1.5 rounded-2xl flex mb-6 relative">
                <button 
@@ -501,8 +497,8 @@ export default function POSPage() {
             </div>
           </div>
 
-          {/* 餐點明細區塊 - 獨立的內部上下滑動區 */}
-          <div className="flex-shrink-0 overflow-y-auto min-h-[35vh] max-h-[45vh] p-4 space-y-3 bg-slate-50 overscroll-contain">
+          {/* ★ 2. 內層：獨立的餐點明細滑動區 (加上 max-h 防止佔滿版面) */}
+          <div className="flex-shrink-0 overflow-y-auto max-h-[40vh] p-4 space-y-3 bg-slate-50 overscroll-contain">
             {items.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-4 opacity-50 py-10"><div className="bg-white p-6 rounded-full shadow-sm"><ShoppingCart size={48} /></div><p className="font-bold">尚未點餐</p><button onClick={() => setIsMobileCartOpen(false)} className="md:hidden text-blue-500 font-bold hover:underline">← 返回菜單</button></div>
             ) : (
@@ -530,7 +526,7 @@ export default function POSPage() {
             {items.length > 0 && <div className="flex justify-center pt-2 pb-6"><button onClick={clearCart} className="flex items-center gap-2 text-slate-400 hover:text-red-500 text-xs font-bold py-2 px-4 rounded-full hover:bg-red-50 transition"><Trash2 size={14} /> 清空購物車</button></div>}
           </div>
 
-          {/* 結帳按鈕區塊 */}
+          {/* 3. 結帳按鈕區塊 (被 mt-auto 推到容器底部) */}
           <div className="mt-auto p-6 bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-30 flex-shrink-0 pb-12 md:pb-6">
             <div className="flex justify-between items-end mb-6"><span className="text-slate-500 font-bold text-sm">訂單總金額</span><div className="flex items-baseline gap-1"><span className="text-4xl font-black text-slate-900">{formatPrice(total)}</span></div></div>
             <button 
