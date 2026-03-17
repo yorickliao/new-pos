@@ -333,7 +333,7 @@ export default function POSPage() {
   if (menuError) return <div className="p-10 text-center text-red-500 font-bold">發生錯誤: {menuError}</div>;
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen h-[100dvh] bg-slate-100 font-sans relative overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen bg-slate-100 font-sans relative overflow-hidden">
       
       {/* 遮罩：店長手動暫停接單 */}
       {storeStatus === 'MANUAL_CLOSED' && (
@@ -518,7 +518,7 @@ export default function POSPage() {
             )}
             {items.length > 0 && <div className="flex justify-center mt-4"><button onClick={clearCart} className="flex items-center gap-2 text-slate-400 hover:text-red-500 text-xs font-bold py-2 px-4 rounded-full hover:bg-red-50 transition"><Trash2 size={14} /> 清空購物車</button></div>}
           </div>
-          <div className="p-6 bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-30 flex-shrink-0 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:pb-6">
+          <div className="p-6 bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-30 flex-shrink-0 pb-20 md:pb-6">
             <div className="flex justify-between items-end mb-6"><span className="text-slate-500 font-bold text-sm">訂單總金額</span><div className="flex items-baseline gap-1"><span className="text-4xl font-black text-slate-900">{formatPrice(total)}</span></div></div>
             <button 
               onClick={handleCheckout} 
