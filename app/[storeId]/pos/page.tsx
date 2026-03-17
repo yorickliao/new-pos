@@ -64,6 +64,11 @@ export default function POSPage() {
   const [pickupTime, setPickupTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [targetDateLabel, setTargetDateLabel] = useState('今日');
+
+  // ★ 判斷今天是星期幾 (0=週日, 1=週一, ..., 4=週四)
+  const isThursday = new Date().getDay() === 4;
+
   // 1. 讀取店家資訊
   useEffect(() => {
     async function fetchStore() {
@@ -91,7 +96,7 @@ export default function POSPage() {
   }, []);
 
   // ★ 3. 核心大腦：以「營業時間」為分界的狀態判斷
-  const { storeStatus, timeSlots, targetDateLabel } = useMemo(() => {
+  const { storeStatus, timeSlots, targetDateLabel: resolvedTargetLabel } = useMemo(() => {
     if (!storeInfo) return { storeStatus: 'LOADING', timeSlots: [], targetDateLabel: '今日' };
     
     // 定義 A：店長手動關閉，徹底不接單
@@ -130,11 +135,11 @@ export default function POSPage() {
       if (allowNextDay) {
         const nextDay = (todayDay + 1) % 7;
         if (nextDay === 4) {
-          // 狀況：週三過了 13:00，目標預訂日是週四 -> 但週四公休
+          // 狀況：週三過了打烊，目標預訂日是週四 -> 但週四公休
           currentStatus = 'TOMORROW_CLOSED'; 
           currentLabel = '明日公休';
         } else {
-          // 狀況：週四過了 13:00，目標預訂日是週五 -> 開放預約週五！
+          // 狀況：過了打烊，目標預訂日是明天 -> 開放預約！
           currentStatus = 'OPEN_FOR_TOMORROW'; 
           currentLabel = '明日';
           
@@ -155,9 +160,9 @@ export default function POSPage() {
         currentLabel = '今日已打烊';
       }
     } else {
-      // 還沒到今天的打烊時間 (包含還沒開店的清晨)
+      // 還沒到今天的打烊時間
       if (todayDay === 4) {
-        // 狀況：週四 13:00 以前 -> 算在週四的營業日內，但週四公休
+        // 狀況：週四營業時間內 -> 但週四公休
         currentStatus = 'TODAY_CLOSED'; 
         currentLabel = '今日公休';
       } else {
@@ -181,6 +186,9 @@ export default function POSPage() {
       }
     }
 
+    // 同步更新 targetDateLabel 狀態
+    setTargetDateLabel(currentLabel);
+
     return { storeStatus: currentStatus, timeSlots: generatedSlots, targetDateLabel: currentLabel };
   }, [storeInfo]);
 
@@ -191,7 +199,7 @@ export default function POSPage() {
     
     // 確切時間判斷：是否已經過了早上的開店時間
     const now = new Date();
-    const [openH, openM] = storeInfo.opening_time.split(':').map(Number);
+    const [openH, openM] = storeInfo?.opening_time?.split(':').map(Number) || [0, 0];
     const openDate = new Date(); openDate.setHours(openH, openM, 0, 0);
     return now >= openDate; 
   }, [storeStatus, storeInfo]);
@@ -321,7 +329,8 @@ export default function POSPage() {
   if (menuError) return <div className="p-10 text-center text-red-500 font-bold">發生錯誤: {menuError}</div>;
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-slate-100 font-sans relative overflow-hidden">
+    // ★ 修正 1：使用 h-[100dvh] 解決手機瀏覽器底端控制列吃掉畫面的問題
+    <div className="flex flex-col md:flex-row h-[100dvh] bg-slate-100 font-sans relative overflow-hidden">
       
       {/* 遮罩：店長手動暫停接單 */}
       {storeStatus === 'MANUAL_CLOSED' && (
@@ -351,10 +360,6 @@ export default function POSPage() {
           )}
         </div>
       )}
-
-      {/* 注意：如果是 storeStatus === 'OPEN_FOR_TOMORROW' (週四下午預訂週五) 
-        系統就不會顯示任何全螢幕遮罩，客人可以正常瀏覽菜單跟加購物車！
-      */}
 
       {/* 左側：菜單區 */}
       <div className="w-full md:w-2/3 flex flex-col h-full relative z-10">
@@ -415,15 +420,21 @@ export default function POSPage() {
         </button>
       </div>
 
-      <div className={`fixed inset-0 z-50 bg-white transition-transform duration-300 transform md:relative md:transform-none md:w-1/3 md:flex md:flex-col md:h-full md:z-auto md:shadow-2xl md:border-l md:border-slate-200 md:inset-auto md:translate-y-0 ${isMobileCartOpen ? "translate-y-0" : "translate-y-full"}`}>
-        <div className="md:hidden p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+      {/* ★ 購物車抽屜：高度跟隨 h-[100dvh] */}
+      <div className={`fixed inset-0 z-50 bg-white transition-transform duration-300 transform md:relative md:transform-none md:w-1/3 md:flex md:flex-col md:h-[100dvh] md:z-auto md:shadow-2xl md:border-l md:border-slate-200 md:inset-auto md:translate-y-0 ${isMobileCartOpen ? "translate-y-0" : "translate-y-full"}`}>
+        
+        {/* 頂部控制 */}
+        <div className="md:hidden p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 flex-shrink-0">
           <h2 className="font-bold text-lg text-slate-800">訂單明細</h2>
           <button onClick={() => setIsMobileCartOpen(false)} className="p-2 bg-white rounded-full shadow text-slate-600"><ChevronDown /></button>
         </div>
-        <div className="flex-1 flex flex-col h-full overflow-hidden">
+        
+        {/* ★ 修正 2：購物車內層改為 flex-col 與 overflow-y-auto，使整體內容可滑動避開底部切斷 */}
+        <div className="flex-1 flex flex-col overflow-y-auto bg-slate-50">
+          
+          {/* 表單區塊 (高度由內容撐開) */}
           <div className="p-6 pb-4 bg-white border-b border-slate-100 flex-shrink-0">
             <div className="bg-slate-100 p-1.5 rounded-2xl flex mb-6 relative">
-               {/* 內用按鈕：實體店面營業中才能按 */}
                <button 
                   onClick={() => isOpenNow && setDiningOption('dine_in')} 
                   className={`flex-1 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all duration-200 z-10 
@@ -439,6 +450,7 @@ export default function POSPage() {
                
                <button onClick={() => setDiningOption('take_out')} className={`flex-1 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all duration-200 z-10 ${diningOption === 'take_out' ? 'bg-white text-green-600 shadow-md scale-100' : 'text-slate-400 hover:text-slate-600'}`}><ShoppingBag size={16} /> 外帶預訂</button>
             </div>
+            
             <div className="space-y-4 animate-fade-in">
               {diningOption === 'dine_in' ? (
                  <div className="relative group">
@@ -479,9 +491,11 @@ export default function POSPage() {
               )}
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white pb-32 md:pb-4">
+
+          {/* ★ 修正 3：餐點明細區塊 - 獨立的內部上下滑動區，設定 max-h 控制 */}
+          <div className="flex-shrink-0 overflow-y-auto min-h-[35vh] max-h-[45vh] p-4 space-y-3 bg-slate-50">
             {items.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-4 opacity-50"><div className="bg-slate-50 p-6 rounded-full"><ShoppingCart size={48} /></div><p className="font-bold">尚未點餐</p><button onClick={() => setIsMobileCartOpen(false)} className="md:hidden text-blue-500 font-bold hover:underline">← 返回菜單</button></div>
+              <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-4 opacity-50 py-10"><div className="bg-white p-6 rounded-full shadow-sm"><ShoppingCart size={48} /></div><p className="font-bold">尚未點餐</p><button onClick={() => setIsMobileCartOpen(false)} className="md:hidden text-blue-500 font-bold hover:underline">← 返回菜單</button></div>
             ) : (
               items.map((item) => (
                 <div key={item.cartId} className="group flex flex-col bg-white border border-slate-100 p-3 rounded-2xl hover:border-slate-300 transition-colors shadow-sm relative">
@@ -504,9 +518,11 @@ export default function POSPage() {
                 </div>
               ))
             )}
-            {items.length > 0 && <div className="flex justify-center mt-4"><button onClick={clearCart} className="flex items-center gap-2 text-slate-400 hover:text-red-500 text-xs font-bold py-2 px-4 rounded-full hover:bg-red-50 transition"><Trash2 size={14} /> 清空購物車</button></div>}
+            {items.length > 0 && <div className="flex justify-center pt-2 pb-6"><button onClick={clearCart} className="flex items-center gap-2 text-slate-400 hover:text-red-500 text-xs font-bold py-2 px-4 rounded-full hover:bg-red-50 transition"><Trash2 size={14} /> 清空購物車</button></div>}
           </div>
-          <div className="p-6 bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-30 flex-shrink-0 pb-20 md:pb-6">
+
+          {/* ★ 修正 4：結帳按鈕區塊 - 隨外層容器滑到底部，使用 mt-auto 確保永遠在下方 */}
+          <div className="mt-auto p-6 bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-30 flex-shrink-0 pb-12 md:pb-6">
             <div className="flex justify-between items-end mb-6"><span className="text-slate-500 font-bold text-sm">訂單總金額</span><div className="flex items-baseline gap-1"><span className="text-4xl font-black text-slate-900">{formatPrice(total)}</span></div></div>
             <button 
               onClick={handleCheckout} 
