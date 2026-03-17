@@ -90,6 +90,18 @@ export default function POSPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // ★★★ 把解決滾動穿透的程式碼加在這裡 ★★★
+  useEffect(() => {
+    if (isMobileCartOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileCartOpen]);
+
   // ★ 3. 核心大腦：以「營業時間」為分界的狀態判斷
   const { storeStatus, timeSlots, targetDateLabel } = useMemo(() => {
     if (!storeInfo) return { storeStatus: 'LOADING', timeSlots: [], targetDateLabel: '今日' };
