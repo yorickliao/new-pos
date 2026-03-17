@@ -425,7 +425,7 @@ export default function POSPage() {
         </button>
       </div>
 
-      {/* ★ 購物車抽屜主結構：加入 flex flex-col 讓外層正確計算高度，啟用內層滑動 */}
+      {/* ★ 購物車抽屜主結構：將 Footer 拔出來固定在底部，中間內容獨立滑動 */}
       <div className={`fixed inset-0 z-50 bg-white flex flex-col h-[100dvh] transition-transform duration-300 transform md:relative md:transform-none md:w-1/3 md:z-auto md:shadow-2xl md:border-l md:border-slate-200 md:inset-auto md:translate-y-0 ${isMobileCartOpen ? "translate-y-0" : "translate-y-full"}`}>
         
         {/* 頂部控制列 (固定不動) */}
@@ -434,8 +434,8 @@ export default function POSPage() {
           <button onClick={() => setIsMobileCartOpen(false)} className="p-2 bg-white rounded-full shadow text-slate-600"><ChevronDown /></button>
         </div>
         
-        {/* ★ 外層：整體內容滑動區塊 (包含表單 + 明細 + 按鈕) */}
-        <div className="flex-1 flex flex-col overflow-y-auto bg-slate-50 relative">
+        {/* ★ 中間層：整體內容滑動區塊 (表單 + 明細) */}
+        <div className="flex-1 overflow-y-auto flex flex-col bg-slate-50 relative">
           
           {/* 1. 表單區塊 */}
           <div className="p-6 pb-4 bg-white border-b border-slate-100 flex-shrink-0">
@@ -497,10 +497,10 @@ export default function POSPage() {
             </div>
           </div>
 
-          {/* ★ 2. 內層：獨立的餐點明細滑動區 (加上 max-h 防止佔滿版面) */}
-          <div className="flex-shrink-0 overflow-y-auto max-h-[40vh] p-4 space-y-3 bg-slate-50 overscroll-contain">
+          {/* 2. 內層餐點明細區塊 (移除 max-h，讓它自動填滿剩下的空間) */}
+          <div className="flex-1 flex flex-col p-4 space-y-3 bg-slate-50">
             {items.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-4 opacity-50 py-10"><div className="bg-white p-6 rounded-full shadow-sm"><ShoppingCart size={48} /></div><p className="font-bold">尚未點餐</p><button onClick={() => setIsMobileCartOpen(false)} className="md:hidden text-blue-500 font-bold hover:underline">← 返回菜單</button></div>
+              <div className="m-auto flex flex-col items-center justify-center text-slate-300 gap-4 opacity-50 py-10"><div className="bg-white p-6 rounded-full shadow-sm"><ShoppingCart size={48} /></div><p className="font-bold">尚未點餐</p><button onClick={() => setIsMobileCartOpen(false)} className="md:hidden text-blue-500 font-bold hover:underline">← 返回菜單</button></div>
             ) : (
               items.map((item) => (
                 <div key={item.cartId} className="group flex flex-col bg-white border border-slate-100 p-3 rounded-2xl hover:border-slate-300 transition-colors shadow-sm relative">
@@ -526,29 +526,31 @@ export default function POSPage() {
             {items.length > 0 && <div className="flex justify-center pt-2 pb-6"><button onClick={clearCart} className="flex items-center gap-2 text-slate-400 hover:text-red-500 text-xs font-bold py-2 px-4 rounded-full hover:bg-red-50 transition"><Trash2 size={14} /> 清空購物車</button></div>}
           </div>
 
-          {/* 3. 結帳按鈕區塊 (被 mt-auto 推到容器底部) */}
-          <div className="mt-auto p-6 bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-30 flex-shrink-0 pb-12 md:pb-6">
-            <div className="flex justify-between items-end mb-6"><span className="text-slate-500 font-bold text-sm">訂單總金額</span><div className="flex items-baseline gap-1"><span className="text-4xl font-black text-slate-900">{formatPrice(total)}</span></div></div>
-            <button 
-              onClick={handleCheckout} 
-              disabled={items.length === 0 || isSubmitting || timeSlots.length === 0 || storeStatus === 'MANUAL_CLOSED'} 
-              className={`w-full py-4 rounded-2xl text-xl font-bold shadow-xl transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 
-              ${items.length === 0 || isSubmitting || timeSlots.length === 0 || storeStatus === 'MANUAL_CLOSED'
-                  ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none" 
-                  : diningOption === 'take_out' 
-                    ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-200 shadow-green-100" 
-                    : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-blue-200 shadow-blue-100"}`}
-            >
-              {isSubmitting 
-                ? (<><Loader2 className="animate-spin" /> 處理中...</>) 
-                : (storeStatus === 'MANUAL_CLOSED' 
-                    ? '暫停接單' 
-                    : timeSlots.length === 0 
-                      ? targetDateLabel 
-                      : (diningOption === 'take_out' ? '確認外帶下單' : '確認內用點餐'))}
-            </button>
-          </div>
         </div>
+
+        {/* ★ 3. 結帳按鈕區塊 (固定在底部，絕不會被擠出去) */}
+        <div className="bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-30 flex-shrink-0 p-6 pb-8 md:pb-6">
+          <div className="flex justify-between items-end mb-6"><span className="text-slate-500 font-bold text-sm">訂單總金額</span><div className="flex items-baseline gap-1"><span className="text-4xl font-black text-slate-900">{formatPrice(total)}</span></div></div>
+          <button 
+            onClick={handleCheckout} 
+            disabled={items.length === 0 || isSubmitting || timeSlots.length === 0 || storeStatus === 'MANUAL_CLOSED'} 
+            className={`w-full py-4 rounded-2xl text-xl font-bold shadow-xl transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 
+            ${items.length === 0 || isSubmitting || timeSlots.length === 0 || storeStatus === 'MANUAL_CLOSED'
+                ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none" 
+                : diningOption === 'take_out' 
+                  ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-200 shadow-green-100" 
+                  : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-blue-200 shadow-blue-100"}`}
+          >
+            {isSubmitting 
+              ? (<><Loader2 className="animate-spin" /> 處理中...</>) 
+              : (storeStatus === 'MANUAL_CLOSED' 
+                  ? '暫停接單' 
+                  : timeSlots.length === 0 
+                    ? targetDateLabel 
+                    : (diningOption === 'take_out' ? '確認外帶下單' : '確認內用點餐'))}
+          </button>
+        </div>
+
       </div>
 
       {selectedProduct && (
