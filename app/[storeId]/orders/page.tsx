@@ -203,13 +203,26 @@ export default function KitchenPage() {
   // 刪除 (Delete)
   const deleteOrder = async (orderId: string) => {
     if (!confirm('確定要永久刪除這張訂單嗎？無法復原喔！')) return;
-    await supabase.from('order_items').delete().eq('order_id', orderId);
-    const { error } = await supabase.from('orders').delete().eq('id', orderId);
-    if (error) alert('刪除失敗：' + error.message);
-    else {
-      setOrders((prev) => prev.filter((o) => String(o.id) !== String(orderId)));
-      setHistoryOrders((prev) => prev.filter((o) => String(o.id) !== String(orderId)));
+    
+    // 1. 先嘗試刪除子項目 (order_items)，並接住錯誤
+    const { error: itemsError } = await supabase.from('order_items').delete().eq('order_id', orderId);
+    if (itemsError) {
+      console.error('刪除明細失敗:', itemsError);
+      alert('刪除失敗 (明細卡住了)：' + itemsError.message);
+      return; // 終止，不要往下刪主單
     }
+
+    // 2. 再刪除主單 (orders)
+    const { error: orderError } = await supabase.from('orders').delete().eq('id', orderId);
+    if (orderError) {
+      console.error('刪除主單失敗:', orderError);
+      alert('刪除失敗 (主單卡住了)：' + orderError.message);
+      return;
+    }
+    
+    // 3. 成功的話，更新畫面
+    setOrders((prev) => prev.filter((o) => String(o.id) !== String(orderId)));
+    setHistoryOrders((prev) => prev.filter((o) => String(o.id) !== String(orderId)));
   };
 
   // 即時監聽與自動更新 (雙重保險)
