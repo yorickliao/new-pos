@@ -222,24 +222,30 @@ export default function KitchenPage() {
     // 2. Supabase 即時監聽 (只要資料庫一有變動立刻更新)
     const channel = supabase
       .channel('kitchen-orders')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+        
+        // ★ 新增：如果接收到的事件是「新增訂單 (INSERT)」，且屬於這家店，就播放提示音
+        if (payload.eventType === 'INSERT' && payload.new.store_id === storeId) {
+          const audio = new Audio('/ding.mp3');
+          audio.play().catch(e => console.log('瀏覽器自動播放音效被阻擋:', e));
+        }
+
         setTimeout(() => { fetchOrders(); if (showHistory) fetchHistory(); }, 500);
       })
       .subscribe();
 
-    // ★ 3. 新增：每 15 秒自動更新 (避免網路斷線漏接訊號)
+    // 3. 每 15 秒自動更新 (避免網路斷線漏接訊號)
     const intervalId = setInterval(() => {
       fetchOrders();
-      // 如果歷史紀錄抽屜是開著的，也順便更新一下
       if (showHistory) {
         fetchHistory();
       }
-    }, 15000); // 15000 毫秒 = 15 秒
+    }, 15000); 
 
     // 清除監聽與計時器 (當離開這個畫面時)
     return () => { 
       supabase.removeChannel(channel); 
-      clearInterval(intervalId); // ★ 記得清除計時器
+      clearInterval(intervalId); 
     };
   }, [selectedDate, showHistory, storeId]);
 
