@@ -224,11 +224,24 @@ export default function KitchenPage() {
       .channel('kitchen-orders')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
         
-        // ★ 新增：如果接收到的事件是「新增訂單 (INSERT)」，且屬於這家店，就播放提示音
-        if (payload.eventType === 'INSERT' && payload.new.store_id === storeId) {
-          const audio = new Audio('/ding.mp3');
-          audio.play().catch(e => console.log('瀏覽器自動播放音效被阻擋:', e));
+        // ----------------------------------------------------
+        // ★ 提示音核心邏輯：把變化印在主控台，方便我們除錯
+        console.log('📞 收到資料庫廣播：', payload);
+
+        // 如果這是一筆「新增 (INSERT)」的訂單，而且是這家分店的
+        if (payload.eventType === 'INSERT' && String(payload.new.store_id) === String(storeId)) {
+          console.log('🔔 條件吻合！有新訂單進來了，準備播放提示音...');
+          
+          // ★ 這裡換成您正確的檔名
+          const audio = new Audio('/notification.mp3');
+          
+          // 嘗試播放音效
+          audio.play().catch(e => {
+            console.error('❌ 瀏覽器阻擋了音效播放！原因：', e);
+            // 如果被擋住，通常是因為店長還沒碰過螢幕
+          });
         }
+        // ----------------------------------------------------
 
         setTimeout(() => { fetchOrders(); if (showHistory) fetchHistory(); }, 500);
       })
@@ -242,7 +255,7 @@ export default function KitchenPage() {
       }
     }, 15000); 
 
-    // 清除監聽與計時器 (當離開這個畫面時)
+    // 清除監聽與計時器
     return () => { 
       supabase.removeChannel(channel); 
       clearInterval(intervalId); 
