@@ -255,8 +255,9 @@ export default function POSPage() {
       if (!customerName || !customerPhone) { alert("外帶請輸入姓名與電話"); return; }
       if (!pickupTime) { alert("請選擇取餐時間"); return; }
     }
-    if (diningOption === 'dine_in' && !tableNumber) {
-      if(!confirm("未輸入桌號，確定要送出嗎？")) return;
+    if (diningOption === 'dine_in' && !tableNumber.trim()) {
+      alert("請輸入桌號以利送餐！"); 
+      return;
     }
 
     setIsSubmitting(true);
