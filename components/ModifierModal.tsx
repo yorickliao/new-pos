@@ -174,7 +174,7 @@ const ITEM_OPTION_RULES: any = {
     { type:'toggle', key:'remove', label:'客製', options: CUSTOM_OPTIONS }
   ],
   '荷包蛋': [
-    { type:'choice', key:'doneness', label:'熟度', options:[{label:'全熟', price:0}, {label:'半熟', price:0}] }
+    { type:'choice', key:'doneness', label:'熟度', isRequired: true, options:[{label:'全熟', price:0}, {label:'半熟', price:0}] }
   ],
   '卡拉雞腿總匯': [
     { 
