@@ -161,7 +161,7 @@ const CATEGORY_OPTION_RULES: any = {
   ],
   snacks: [], // 美味小點是單點，沒有加料選項
   hotpot: [
-    { type:'toggle', key:'add', label:'加料', options:[{label:'加起司', price:10}, {label:'加沙茶', price:10}, {label:'加麵', price:15}] }
+    { type:'toggle', key:'add', label:'加料', options:[{label:'加起司', price:10}, {label:'加沙茶', price:10}, {label:'加麵', price:15}, { label: '加辣', price: 10 }] }
   ],
   setmeal: [], // 一般套餐是空的
   drinks: [], coffee: [], special: []
