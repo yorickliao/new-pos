@@ -62,9 +62,10 @@ export default function POSPage() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [tableNumber, setTableNumber] = useState("");
   const [pickupTime, setPickupTime] = useState("");
+  const [isPickupTimeModalOpen, setIsPickupTimeModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [targetDateLabel, setTargetDateLabel] = useState('今日');
+  // const [targetDateLabel, setTargetDateLabel] = useState('今日');
 
   // 判斷今天是星期幾 (0=週日, 1=週一, ..., 4=週四)
   const isThursday = new Date().getDay() === 4;
@@ -108,7 +109,7 @@ export default function POSPage() {
   }, [isMobileCartOpen]);
 
   // 3. 核心大腦：以「營業時間」為分界的狀態判斷
-  const { storeStatus, timeSlots, targetDateLabel: resolvedTargetLabel } = useMemo(() => {
+  const { storeStatus, timeSlots, targetDateLabel } = useMemo(() => {
     if (!storeInfo) return { storeStatus: 'LOADING', timeSlots: [], targetDateLabel: '今日' };
     
     // 定義 A：店長手動關閉，徹底不接單
@@ -198,10 +199,18 @@ export default function POSPage() {
     }
 
     // 同步更新 targetDateLabel 狀態
-    setTargetDateLabel(currentLabel);
+    // setTargetDateLabel(currentLabel);
 
     return { storeStatus: currentStatus, timeSlots: generatedSlots, targetDateLabel: currentLabel };
   }, [storeInfo]);
+
+
+  // 取餐時段改變後，若原本選到的時間已失效，就清空
+  useEffect(() => {
+    if (pickupTime && !timeSlots.includes(pickupTime)) {
+      setPickupTime("");
+    }
+  }, [pickupTime, timeSlots]);
 
   // 4. 計算「當下實體店面是否開啟」(用來決定能不能點內用)
   const isOpenNow = useMemo(() => {
@@ -242,7 +251,9 @@ export default function POSPage() {
     if (storeStatus === 'MANUAL_CLOSED') return alert("店家目前暫停接單中，請稍後再試！");
     if (storeStatus === 'TODAY_CLOSED') return alert("今日為固定公休日，暫停接單！");
     if (storeStatus === 'TOMORROW_CLOSED') return alert("明日為固定公休日，目前無法預點！");
-    if (timeSlots.length === 0) return alert("目前沒有可選擇的取餐時間");
+    if (diningOption === 'take_out' && timeSlots.length === 0) {
+      return alert("目前沒有可選擇的取餐時間");
+    }
 
     if (items.length === 0) return;
     
@@ -461,7 +472,7 @@ export default function POSPage() {
               {diningOption === 'dine_in' ? (
                  <div className="relative group">
                     <div className="absolute left-3 top-3.5 text-slate-400"><MapPin size={18} /></div>
-                    <input type="text" value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} placeholder="請輸入桌號 (選填)" className="w-full bg-slate-50 rounded-2xl py-3 pl-10 pr-3 font-bold text-slate-800 outline-none focus:bg-white border-2 border-transparent focus:border-blue-500 transition placeholder:text-slate-400" />
+                    <input type="text" value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} placeholder="請輸入桌號" className="w-full bg-slate-50 rounded-2xl py-3 pl-10 pr-3 font-bold text-slate-800 outline-none focus:bg-white border-2 border-transparent focus:border-blue-500 transition placeholder:text-slate-400" />
                  </div>
               ) : (
                  <div className="space-y-3">
@@ -476,22 +487,36 @@ export default function POSPage() {
                     </div>
                   </div>
                   <div className="relative group">
-                    <div className="absolute left-3 top-3.5 text-slate-400"><Clock size={18} /></div>
-                    <select value={pickupTime} onChange={(e) => setPickupTime(e.target.value)} className="w-full bg-slate-50 rounded-2xl py-3 pl-10 pr-3 font-bold text-slate-800 outline-none focus:bg-white border-2 border-transparent focus:border-green-500 transition appearance-none cursor-pointer">
-                      <option value="">請選擇取餐時間 ({targetDateLabel})</option>
-                      {timeSlots.length > 0 ? (
-                        timeSlots.map((time) => (
-                          <option key={time} value={time}>
-                            {targetDateLabel === '明日' ? `明日 ${time}` : time}
-                          </option>
-                        ))
-                      ) : (
-                        <option disabled>
-                          {targetDateLabel}
-                        </option>
-                      )}
-                    </select>
-                    <div className="absolute right-3 top-4 text-slate-400 pointer-events-none"><ChevronDown size={16} /></div>
+                    <div className="absolute left-3 top-3.5 text-slate-400 pointer-events-none">
+                      <Clock size={18} />
+                    </div>
+                  
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (timeSlots.length > 0) {
+                          setIsPickupTimeModalOpen(true);
+                        }
+                      }}
+                      disabled={timeSlots.length === 0}
+                      className={`w-full rounded-2xl py-3 pl-10 pr-10 font-bold text-left border-2 transition ${
+                        timeSlots.length === 0
+                          ? 'bg-slate-100 text-slate-400 border-transparent cursor-not-allowed'
+                          : 'bg-slate-50 text-slate-800 border-transparent hover:bg-white focus:border-green-500'
+                      }`}
+                    >
+                      {pickupTime
+                        ? targetDateLabel === '明日'
+                          ? `明日 ${pickupTime}`
+                          : pickupTime
+                        : timeSlots.length > 0
+                          ? `請選擇取餐時間 (${targetDateLabel})`
+                          : `目前無可選取餐時間 (${targetDateLabel})`}
+                    </button>
+                  
+                    <div className="absolute right-3 top-4 text-slate-400 pointer-events-none">
+                      <ChevronDown size={16} />
+                    </div>
                   </div>
                 </div>
               )}
@@ -534,26 +559,101 @@ export default function POSPage() {
           <div className="flex justify-between items-end mb-6"><span className="text-slate-500 font-bold text-sm">訂單總金額</span><div className="flex items-baseline gap-1"><span className="text-4xl font-black text-slate-900">{formatPrice(total)}</span></div></div>
           <button 
             onClick={handleCheckout} 
-            disabled={items.length === 0 || isSubmitting || timeSlots.length === 0 || storeStatus === 'MANUAL_CLOSED'} 
-            className={`w-full py-4 rounded-2xl text-xl font-bold shadow-xl transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 
-            ${items.length === 0 || isSubmitting || timeSlots.length === 0 || storeStatus === 'MANUAL_CLOSED'
-                ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none" 
-                : diningOption === 'take_out' 
-                  ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-200 shadow-green-100" 
-                  : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-blue-200 shadow-blue-100"}`}
+            disabled={
+              items.length === 0 ||
+              isSubmitting ||
+              storeStatus === 'MANUAL_CLOSED' ||
+              (diningOption === 'take_out' && timeSlots.length === 0)
+            }
+            className={`w-full py-4 rounded-2xl text-xl font-bold shadow-xl transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 ${
+              items.length === 0 ||
+              isSubmitting ||
+              storeStatus === 'MANUAL_CLOSED' ||
+              (diningOption === 'take_out' && timeSlots.length === 0)
+                ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
+                : diningOption === 'take_out'
+                  ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:shadow-green-200 shadow-green-100"
+                  : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-blue-200 shadow-blue-100"
+            }`}
           >
             {isSubmitting 
-              ? (<><Loader2 className="animate-spin" /> 處理中...</>) 
-              : (storeStatus === 'MANUAL_CLOSED' 
-                  ? '暫停接單' 
-                  : timeSlots.length === 0 
-                    ? targetDateLabel 
-                    : (diningOption === 'take_out' ? '確認外帶下單' : '確認內用點餐'))}
+              ? (
+                  <>
+                    <Loader2 className="animate-spin" /> 處理中...
+                  </>
+                ) 
+              : storeStatus === 'MANUAL_CLOSED' 
+                ? '暫停接單' 
+                : diningOption === 'take_out' && timeSlots.length === 0 
+                  ? targetDateLabel 
+                  : diningOption === 'take_out' 
+                    ? '確認外帶下單' 
+                    : '確認內用點餐'}
           </button>
         </div>
 
       </div>
 
+      {isPickupTimeModalOpen && (
+        <div
+          className="fixed inset-0 z-[120] bg-black/50 flex items-end md:items-center md:justify-center"
+          onClick={() => setIsPickupTimeModalOpen(false)}
+        >
+          <div
+            className="w-full md:max-w-md bg-white rounded-t-3xl md:rounded-3xl shadow-2xl max-h-[75dvh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center flex-shrink-0">
+              <div>
+                <h3 className="text-lg font-black text-slate-800">選擇取餐時間</h3>
+                <p className="text-sm font-bold text-slate-400 mt-1">
+                  {targetDateLabel === '明日' ? '明日取餐' : '今日取餐'}
+                </p>
+              </div>
+      
+              <button
+                type="button"
+                onClick={() => setIsPickupTimeModalOpen(false)}
+                className="p-2 rounded-full bg-slate-100 text-slate-500"
+              >
+                <X size={20} />
+              </button>
+            </div>
+      
+            <div className="p-4 overflow-y-auto grid grid-cols-3 gap-3">
+              {timeSlots.map((time) => (
+                <button
+                  key={time}
+                  type="button"
+                  onClick={() => {
+                    setPickupTime(time);
+                    setIsPickupTimeModalOpen(false);
+                  }}
+                  className={`py-3 rounded-xl font-black text-sm border transition
+                    ${
+                      pickupTime === time
+                        ? 'bg-green-600 border-green-600 text-white shadow-md'
+                        : 'bg-white border-slate-200 text-slate-700 hover:border-green-500 hover:text-green-600'
+                    }
+                  `}
+                >
+                  {time}
+                </button>
+              ))}
+            </div>
+      
+            <div className="p-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsPickupTimeModalOpen(false)}
+                className="w-full py-3 rounded-xl bg-slate-100 text-slate-600 font-bold"
+              >
+                關閉
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {selectedProduct && (
         <ModifierModal 
           product={selectedProduct} 
