@@ -676,6 +676,7 @@ export default function POSPage() {
               
               <h2 className="text-2xl font-black text-slate-800 mb-1">下單成功！</h2>
               <p className="text-slate-500 font-bold text-sm mb-6">我們會盡快為您準備餐點</p>
+              <p className="text-slate-500 font-bold text-sm mb-6">訂單送出請到櫃檯確認訂單、付款</p>
 
               {/* 取餐號碼卡片 */}
               <div className="w-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center mb-6 relative overflow-hidden">
