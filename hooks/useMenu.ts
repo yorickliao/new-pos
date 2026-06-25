@@ -30,7 +30,8 @@ export function useMenu(storeId: string) {
           .eq('store_products.store_id', storeId) // 只抓這家店
           .eq('store_products.is_available', true) // 只抓上架的
           .order('category_id', { ascending: true })
-          .order('id', { ascending: true });
+          .order('sort_order', { ascending: true }) // ★ 第1順位：依照您自訂的號碼排 (1, 2, 3...)
+          .order('id', { ascending: true });        // ★ 第2順位：如果大家都沒設定(都是99)，就依照預設的ID排
 
         if (dbError) throw dbError;
 
