@@ -223,6 +223,7 @@ const ITEM_OPTION_RULES: any = {
       options: [{label:'香蒜帕瑪森', price:0}, {label:'燒餅', price:0}] 
     },
   ],
+  '日式豬排蛋堡套餐': COMBO_ADDON_RULES,
 };
 
 // =============================================================================
