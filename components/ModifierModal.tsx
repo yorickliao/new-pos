@@ -186,7 +186,7 @@ const ITEM_OPTION_RULES: any = {
     }
   ],
   '美式奔牛堡套餐': COMBO_ADDON_RULES,
-  '起飛嫩雞堡套餐': COMBO_ADDON_RULES,
+  '起飛嫩雞堡套餐': COMBO_ADDON_RULES,  
   '雙層豬肉起司堡套餐': COMBO_ADDON_RULES,
   '德式帕瑪森套餐': COMBO_ADDON_RULES,
   '檸檬雞柳麵套餐': [
@@ -213,6 +213,15 @@ const ITEM_OPTION_RULES: any = {
   '魚柳鍋燒意麵套餐': [
     { type: 'choice', key: 'noodle', label: '麵體選擇', isRequired: true, options: [{label:'冬粉', price:0}, {label:'意麵', price:0}, {label:'雞絲', price:0}, {label:'烏龍', price:5}] },
     ...COMBO_ADDON_RULES
+  ],
+  '法式薯泥沙拉套餐': [
+    { 
+      type: 'choice', 
+      key: 'bread', 
+      label: '麵包選擇', 
+      isRequired: true, 
+      options: [{label:'香蒜帕瑪森', price:0}, {label:'燒餅', price:0}] 
+    },
   ],
 };
 
