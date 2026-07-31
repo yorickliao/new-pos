@@ -623,7 +623,7 @@ export default function ModifierModal({ product, onClose }: Props) {
                       onChange={() => { 
                         setUpgradeId(plan.id); 
                         setDrinkName(plan.defaultDrink); 
-                        setDrinkSize('M'); 
+                        setDrinkSize('L'); 
                       }}
                       className="w-5 h-5 accent-black"
                     />
