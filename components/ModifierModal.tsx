@@ -83,9 +83,9 @@ const SET_MEAL_DRINKS: SetMealDrink[] = [
 
 const UPGRADE_PLANS = [
   { id: '39_hotdog',   price: 55, label: '熱狗＋大紅',     credit: 25, defaultDrink: '紅茶', defaultSize: 'L' },
-  { id: '49_garlic',   price: 49, label: '香蒜麵包＋中紅', credit: 15, defaultDrink: '紅茶', defaultSize: 'M' },
-  { id: '59_tempura',  price: 59, label: '甜不辣＋中奶',   credit: 20, defaultDrink: '奶茶', defaultSize: 'M' },
-  { id: '69_fish',     price: 69, label: '魚條＋中冬',     credit: 20, defaultDrink: '冬瓜茶', defaultSize: 'M' },
+  { id: '49_garlic',   price: 70, label: '香蒜麵包＋大奶', credit: 35, defaultDrink: '奶茶', defaultSize: 'L' },
+  { id: '59_tempura',  price: 80, label: '甜不辣＋大奶',   credit: 35, defaultDrink: '奶茶', defaultSize: 'L' },
+  { id: '69_fish',     price: 75, label: '魚條＋大冬',     credit: 25, defaultDrink: '冬瓜茶', defaultSize: 'L' },
 ];
 
 // =============================================================================
