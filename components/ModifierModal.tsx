@@ -108,7 +108,8 @@ const MEAT_OPTIONS = [
   {label:'加牛肉', price:30},
   {label:'加里肌', price:30},
   {label:'加卡拉雞', price:45},
-  {label:'加厚牛', price:60}
+  {label:'加厚牛', price:60},
+  {label:'加鮪魚', price:20}
 ];
 
 // --- 包含「不加蛋」的客製選項 ---
