@@ -293,7 +293,7 @@ export default function ModifierModal({ product, onClose }: Props) {
             { label: '巧克力', price: 0 },
             { label: '奶油', price: 0 },
             { label: '花生', price: 0 },
-            { label: '藍莓', price: 0 },
+            { label: '藍莓', price: 5 },
             { label: '香蒜', price: 5 },
             { label: '煉乳', price: 10 },
           ]
