@@ -545,23 +545,25 @@ export default function ModifierModal({ product, onClose }: Props) {
             <div className="bg-white p-4 rounded-2xl border border-slate-300 space-y-4 shadow-sm">
               <h3 className="font-black text-black text-base">套餐飲品</h3>
               <div className="relative">
-                <select
-                  value={setDrinkId}
-                  onChange={(e) => {
+                <select value={setDrinkId} 
+                  onChange={(e) => { 
                     const id = e.target.value;
-                    const d = SET_MEAL_DRINKS.find(x => x.id === id);
-                
-                    if (!d) return;
-                
-                    setSetDrinkId(id);
-                    setDrinkName(d.name);
-                
-                    // 切換飲料時，自動切到該飲料第一個合法杯型
-                    setDrinkSize(d.sizes[0] as DrinkSize);
-                
-                    // 溫度也一起重設
-                    setDrinkTemp(d.temps[0] as DrinkTemp);
-                  }}
+                    const d = SET_MEAL_DRINKS.find(x=>x.id===id);
+                    const nextDrinkName = d?.name || '';
+                    
+                    setSetDrinkId(id); 
+                    setDrinkName(nextDrinkName);
+              
+                    // ★ 新增修復：檢查新飲料有沒有支援目前的杯型 (例如冬瓜茶有沒有 S)
+                    // 如果沒有，就自動幫客人切換成該飲料的預設杯型 (通常是 M)
+                    const meta = DRINK_META[nextDrinkName];
+                    if (meta && !meta.sizes.includes(drinkSize)) {
+                      // drinkSize 會抓取目前 state，若不包含就強制更新
+                      // 因為 setState 屬於非同步操作，為了安全我們直接取 meta 的值
+                      setDrinkSize(meta.baseSize || meta.sizes[0]); 
+                    }
+                  }} 
+                  className="w-full p-3 rounded-xl border border-slate-300 bg-white font-bold text-black appearance-none text-base focus:ring-2 focus:ring-black focus:border-transparent"
                 >
                   {SET_MEAL_DRINKS.map(d => (
                     <option key={d.id} value={d.id}>
