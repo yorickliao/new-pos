@@ -569,7 +569,26 @@ export default function ModifierModal({ product, onClose }: Props) {
                     {/* ★ 濃湯/飲料都會顯示大小杯 */}
                     <div className={currentDrinkMeta.isSoup ? "col-span-2" : ""}>
                       <label className="text-xs font-bold text-black mb-1 block">杯型</label>
-                      <select value={drinkSize} onChange={e=>setDrinkSize(e.target.value as DrinkSize)} className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-bold text-black text-sm">
+                      <select value={setDrinkId} 
+                        onChange={(e) => { 
+                          const id = e.target.value;
+                          const d = SET_MEAL_DRINKS.find(x=>x.id===id);
+                          const nextDrinkName = d?.name || '';
+                          
+                          setSetDrinkId(id); 
+                          setDrinkName(nextDrinkName);
+                    
+                          // ★ 新增修復：檢查新飲料有沒有支援目前的杯型 (例如冬瓜茶有沒有 S)
+                          // 如果沒有，就自動幫客人切換成該飲料的預設杯型 (通常是 M)
+                          const meta = DRINK_META[nextDrinkName];
+                          if (meta && !meta.sizes.includes(drinkSize)) {
+                            // drinkSize 會抓取目前 state，若不包含就強制更新
+                            // 因為 setState 屬於非同步操作，為了安全我們直接取 meta 的值
+                            setDrinkSize(meta.baseSize || meta.sizes[0]); 
+                          }
+                        }} 
+                        className="w-full p-3 rounded-xl border border-slate-300 bg-white font-bold text-black appearance-none text-base focus:ring-2 focus:ring-black focus:border-transparent"
+                      >
                         {currentDrinkMeta.sizes.map(sz => (
                           <option key={sz} value={sz}>
                             {sz==='S'?'小':(sz==='M'?'中':'大')}
