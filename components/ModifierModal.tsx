@@ -54,7 +54,8 @@ const DRINK_META: Record<string, DrinkConfig> = {
   '特調咖啡':   { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:60 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
   '鴛鴦奶茶':   { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:60 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
   // ★ 修改：濃湯加入大杯(L)選項，預設中杯40，大杯50
-  '玉米濃湯':   { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:50 },       temps: ['hot'], isSoup: true }
+  '玉米濃湯':   { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:50 },       temps: ['hot'], isSoup: true },
+  '梅子可樂': {  base: 55,  baseSize: 'L',  sizes: ['L'],  prices: { L: 55 },  temps: COLD_ONLY }
 };
 
 const SET_MEAL_DRINKS: SetMealDrink[] = [
@@ -79,6 +80,7 @@ const SET_MEAL_DRINKS: SetMealDrink[] = [
   { id:'special_cof',name:'特調咖啡',   add:25 },
   { id:'yuanyang',   name:'鴛鴦奶茶',   add:25 },
   { id:'soup',       name:'玉米濃湯',   add:25 },
+  { id:'plum_coke', name:'梅子可樂', add:40 },
 ];
 
 const UPGRADE_PLANS = [
