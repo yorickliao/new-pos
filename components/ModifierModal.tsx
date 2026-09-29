@@ -33,11 +33,11 @@ const COMMON_TEMPS: DrinkTemp[] = ['ice', 'no_ice', 'hot'];
 const COLD_ONLY: DrinkTemp[] = ['ice', 'no_ice'];
 
 const DRINK_META: Record<string, DrinkConfig> = {
-  '紅茶':       { base: 15, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:15, M:20, L:25 }, temps: COMMON_TEMPS },
-  '無糖紅茶':   { base: 15, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:15, M:20, L:25 }, temps: COMMON_TEMPS },
-  '奶茶':       { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS, hasSugar: true },
-  '豆漿':       { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
-  '無糖豆漿':   { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
+  '紅茶':       { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:30 }, temps: COMMON_TEMPS },
+  '無糖紅茶':   { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:30 }, temps: COMMON_TEMPS },
+  '奶茶':       { base: 25, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:25, M:30, L:40 }, temps: COMMON_TEMPS, hasSugar: true },
+  '豆漿':       { base: 25, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:25, M:30, L:40 }, temps: COMMON_TEMPS },
+  '無糖豆漿':   { base: 25, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:25, M:30, L:40 }, temps: COMMON_TEMPS },
   '薏仁漿':     { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
   '米漿':       { base: 20, baseSize: 'M', sizes: ['S', 'M', 'L'], prices: { S:20, M:25, L:35 }, temps: COMMON_TEMPS },
   '冬瓜茶':     { base: 25, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:25, L:30 },       temps: COLD_ONLY },
@@ -46,9 +46,9 @@ const DRINK_META: Record<string, DrinkConfig> = {
   '冷泡茶':     { base: 25, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:25, L:35 },       temps: COLD_ONLY },
   '鮮奶茶':     { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:50 },       temps: COMMON_TEMPS, hasSugar: true },
   '薏仁牛奶':   { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS },
-  '可可亞牛奶': { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS, hasSugar: false },
-  '豆奶茶':     { base: 30, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:30, L:40 },       temps: COMMON_TEMPS, hasSugar: true },
-  '泰式奶茶':   { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS, hasSugar: false },
+  '可可亞牛奶': { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:50 },       temps: COMMON_TEMPS, hasSugar: false },
+  '豆奶茶':     { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:45 },       temps: COMMON_TEMPS, hasSugar: true },
+  '泰式奶茶':   { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:50 },       temps: COMMON_TEMPS, hasSugar: false },
   '美式咖啡':   { base: 35, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:35, L:55 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
   '拿鐵咖啡':   { base: 50, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:50, L:75 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
   '特調咖啡':   { base: 40, baseSize: 'M', sizes: ['M', 'L'],      prices: { M:40, L:60 },       temps: COMMON_TEMPS, isCoffee: true, hasSugar: true },
@@ -84,10 +84,10 @@ const SET_MEAL_DRINKS: SetMealDrink[] = [
 ];
 
 const UPGRADE_PLANS = [
-  { id: '39_hotdog',   price: 55, label: '熱狗＋大紅',     credit: 25, defaultDrink: '紅茶', defaultSize: 'L' },
+  { id: '39_hotdog',   price: 55, label: '熱狗＋大紅',     credit: 20, defaultDrink: '紅茶', defaultSize: 'L' },
   { id: '49_garlic',   price: 70, label: '香蒜麵包＋大奶', credit: 35, defaultDrink: '奶茶', defaultSize: 'L' },
   { id: '59_tempura',  price: 80, label: '甜不辣＋大奶',   credit: 35, defaultDrink: '奶茶', defaultSize: 'L' },
-  { id: '69_fish',     price: 75, label: '魚條＋大冬',     credit: 25, defaultDrink: '冬瓜茶', defaultSize: 'L' },
+  { id: '69_fish',     price: 75, label: '魚條＋大冬',     credit: 20, defaultDrink: '冬瓜茶', defaultSize: 'L' },
 ];
 
 // =============================================================================
