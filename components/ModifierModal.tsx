@@ -372,9 +372,27 @@ export default function ModifierModal({ product, onClose }: Props) {
     if (context === 'upgrade') {
       const plan = UPGRADE_PLANS.find(p => p.id === upgradeId);
       if (!plan) return 0;
-      if (dName === plan.defaultDrink && dSize === plan.defaultSize) return 0;
-      return Math.max(0, actualPrice - (plan?.credit || 0));
-    } 
+    
+      // 原套餐飲料的原始杯型價格
+      const defaultMeta = DRINK_META[plan.defaultDrink];
+      const defaultPrice =
+        defaultMeta?.prices[plan.defaultSize as DrinkSize] || 0;
+    
+      // 還是選原本飲料，而且價格 <= 原套餐飲料價格
+      // 不應該另外補錢
+      if (
+        dName === plan.defaultDrink &&
+        actualPrice <= defaultPrice
+      ) {
+        return 0;
+      }
+    
+      // 換其他飲料才按照業主設定的 credit 計算
+      return Math.max(
+        0,
+        actualPrice - (plan.credit || 0)
+      );
+    }
     
     if (context === 'set') return Math.max(0, actualPrice - 20);
 
