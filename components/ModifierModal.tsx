@@ -376,7 +376,7 @@ export default function ModifierModal({ product, onClose }: Props) {
       return Math.max(0, actualPrice - (plan?.credit || 0));
     } 
     
-    if (context === 'set') return Math.max(0, actualPrice - 15);
+    if (context === 'set') return Math.max(0, actualPrice - 20);
 
     const minPrice = Math.min(...Object.values(meta.prices));
     return Math.max(0, actualPrice - minPrice);
