@@ -394,7 +394,14 @@ export default function ModifierModal({ product, onClose }: Props) {
       );
     }
     
-    if (context === 'set') return Math.max(0, actualPrice - 20);
+    if (context === 'set') {
+      // 業主特殊規則：套餐換梅子可樂固定加 40
+      if (dName === '梅子可樂') {
+        return 40;
+      }
+    
+      return Math.max(0, actualPrice - 20);
+    }
 
     const minPrice = Math.min(...Object.values(meta.prices));
     return Math.max(0, actualPrice - minPrice);
