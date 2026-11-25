@@ -119,14 +119,16 @@ const CUSTOM_OPTIONS = [
   {label:'不加蛋', price:-5},
   {label:'不加菜', price:0},
   {label:'不加醬', price:0},
-  {label:'菜多', price:10}
+  {label:'菜多', price:10},
+  {label:'不烤', price:0}
 ];
 
 // --- 沒有「不加蛋」的客製選項 ---
 const CUSTOM_OPTIONS_NO_EGG = [
   {label:'不加菜', price:0},
   {label:'不加醬', price:0},
-  {label:'菜多', price:10}
+  {label:'菜多', price:10},
+  {label:'不烤', price:0}
 ];
 
 const COMMON_ADDONS = [
@@ -151,7 +153,17 @@ const CATEGORY_OPTION_RULES: any = {
     { type:'toggle', key:'remove', label:'客製',   options: CUSTOM_OPTIONS }
   ],
   omelet: [
-    ...COMMON_ADDONS
+    {
+      type: 'toggle',
+      key: 'egg',
+      label: '加蛋',
+      options: [
+        { label: '加蛋', price: 15 },
+        { label: '雙蛋', price: 15 }
+      ]
+    },
+    { type: 'toggle', key: 'cheese', label: '加起司', price: 10 },
+    { type: 'toggle', key: 'meat', label: '加肉', options: MEAT_OPTIONS }
   ],
   club: [
     ...COMMON_ADDONS,
